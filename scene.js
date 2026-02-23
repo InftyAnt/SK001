@@ -46,6 +46,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const gridRadius = opts.gridRadius ?? (Math.min(design.dx, design.dy) * 0.10);
 	const gridOpacity = opts.gridOpacity ?? 0.45;
 	const gridSegments = opts.gridSegments ?? 16;
+	const showGridBalls = opts.showGridBalls ?? false;
 
 	// 평면/겹침 방지
 	const planeOpacity = opts.planeOpacity ?? 1.0;
@@ -202,45 +203,48 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const lines = new THREE.LineSegments(gridLineGeom, gridLineMat);
 	lines.position.set(0, 0, layerZ(L) + gridLineZ);
 	lines.name = `gridLines:L${L}`;
-	lines.renderOrder = -15; // plane(-20) 위, gridBalls(-10) 아래
+	lines.renderOrder = -15; // plane(-20) 위
 	layerGroups[L].add(lines);
 	}
 
 	// =========================
 	// 2) 그리드 점 (레이어별 Instanced Sphere 1개)
+	//    - 대형 데이터에서 성능 비용이 커서 기본 비활성화
 	// =========================
-	for (let L = 0; L < design.nlayer; L++) {
-		const geom = new THREE.SphereGeometry(gridRadius, gridSegments, gridSegments);
-		const mat = new THREE.MeshBasicMaterial({
-			color : 0xaaaaaa,
-			transparent : false,
-			depthTest : true,
-			depthWrite : true,
-		});
+	if (showGridBalls) {
+		for (let L = 0; L < design.nlayer; L++) {
+			const geom = new THREE.SphereGeometry(gridRadius, gridSegments, gridSegments);
+			const mat = new THREE.MeshBasicMaterial({
+				color : 0xaaaaaa,
+				transparent : false,
+				depthTest : true,
+				depthWrite : true,
+			});
 
-		const count = design.nx * design.ny;
-		const inst = new THREE.InstancedMesh(geom, mat, count);
+			const count = design.nx * design.ny;
+			const inst = new THREE.InstancedMesh(geom, mat, count);
 
-		const m = new THREE.Matrix4();
-		const q = new THREE.Quaternion(); // 회전 없음
-		const s = new THREE.Vector3(1, 1, 1);
-		const p = new THREE.Vector3();
+			const m = new THREE.Matrix4();
+			const q = new THREE.Quaternion(); // 회전 없음
+			const s = new THREE.Vector3(1, 1, 1);
+			const p = new THREE.Vector3();
 
-		const z = layerZ(L) + zLift * 0.5;
+			const z = layerZ(L) + zLift * 0.5;
 
-		let idx = 0;
-		for (let y = 0; y < design.ny; y++) {
-			for (let x = 0; x < design.nx; x++) {
-				p.set(x * design.dx - x0, y * design.dy - y0, z);
-				m.compose(p, q, s);
-				inst.setMatrixAt(idx++, m);
+			let idx = 0;
+			for (let y = 0; y < design.ny; y++) {
+				for (let x = 0; x < design.nx; x++) {
+					p.set(x * design.dx - x0, y * design.dy - y0, z);
+					m.compose(p, q, s);
+					inst.setMatrixAt(idx++, m);
+				}
 			}
-		}
 
-		inst.instanceMatrix.needsUpdate = true;
-		inst.name = `gridBalls:L${L}`;
-		inst.renderOrder = -10;
-		layerGroups[L].add(inst);
+			inst.instanceMatrix.needsUpdate = true;
+			inst.name = `gridBalls:L${L}`;
+			inst.renderOrder = -10;
+			layerGroups[L].add(inst);
+		}
 	}
 
 	// =========================
