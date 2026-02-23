@@ -389,3 +389,80 @@ canvas {
 	font-size : 11px;
 	opacity : 0.65;
 }
+
+/* Group/Net Tree */
+.group-tree {
+	display : flex;
+	flex-direction : column;
+	gap : 6px;
+	margin-bottom : 8px;
+}
+
+.group-tree-empty {
+	padding : 10px;
+	border-radius : 10px;
+	background : rgba(255, 255, 255, 0.05);
+	font-size : 12px;
+	opacity : 0.75;
+}
+
+.group-row,
+.net-row {
+	display : flex;
+	align-items : center;
+	gap : 8px;
+}
+
+.group-row {
+	padding : 6px 8px;
+	border-radius : 10px;
+	background : rgba(255, 255, 255, 0.06);
+}
+
+.group-expand {
+	width : 20px;
+	height : 20px;
+	border : 0;
+	border-radius : 6px;
+	background : rgba(255, 255, 255, 0.08);
+	color : #fff;
+	cursor : pointer;
+	font-size : 11px;
+	line-height : 1;
+}
+
+.group-expand:hover {
+	background : rgba(255, 255, 255, 0.14);
+}
+
+.group-check,
+.net-check {
+	width : 16px;
+	height : 16px;
+	margin : 0;
+}
+
+.group-label,
+.net-label {
+	min-width : 0;
+	white-space : nowrap;
+	overflow : hidden;
+	text-overflow : ellipsis;
+}
+
+.group-label {
+	font-weight : 600;
+}
+
+.group-children {
+	margin-left : 24px;
+	display : flex;
+	flex-direction : column;
+	gap : 4px;
+}
+
+.net-row {
+	padding : 4px 8px;
+	border-radius : 8px;
+	background : rgba(255, 255, 255, 0.03);
+}

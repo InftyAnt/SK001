@@ -475,6 +475,7 @@ function setActiveSceneById(id) {
 	renderSceneList();
 	
 	renderCameraButtons();
+	renderGroupTree();
 }
 
 async function addTextFilesAsScenes(files) {
@@ -525,6 +526,112 @@ const dataUI = initDataFilesUI({
 });
 
 const cameraButtonsEl = document.getElementById("cameraButtons");
+const groupTreeEl = document.getElementById("groupTree");
+
+function ensureGroupUiState(ctx) {
+	if (!ctx) return null;
+	if (!ctx.ui) ctx.ui = {};
+	if (!ctx.ui.expandedGroups) {
+		const ids = (ctx.design?.groups ?? []).map((g) => g.gid);
+		ctx.ui.expandedGroups = new Set(ids);
+	}
+	return ctx.ui;
+}
+
+function refreshGroupState(group) {
+	const flags = (group?.nets ?? []).map((n) => !!n.enabled);
+	if (flags.length === 0) {
+		group.state = "off";
+		return;
+	}
+	if (flags.every(Boolean)) group.state = "on";
+	else if (flags.some(Boolean)) group.state = "partial";
+	else group.state = "off";
+}
+
+function reapplyActiveDesignVisibility() {
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) return;
+	applyDesignToScene(ctx.scene, ctx.design);
+	syncAxisLengthForCtx(ctx);
+	if (!ctx.view) ctx.view = makeInitialViewForCtx(ctx.design);
+	applyViewState(ctx.view);
+}
+
+function renderGroupTree() {
+	if (!groupTreeEl) return;
+
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+
+	groupTreeEl.innerHTML = "";
+
+	if (!design || !Array.isArray(design.groups) || design.groups.length === 0) {
+		const empty = document.createElement("div");
+		empty.className = "group-tree-empty";
+		empty.textContent = "디자인을 로드하면 그룹/넷 토글 트리가 표시됩니다.";
+		groupTreeEl.appendChild(empty);
+		return;
+	}
+
+	const ui = ensureGroupUiState(ctx);
+
+	design.groups.forEach((group, gIdx) => {
+		refreshGroupState(group);
+		const open = ui.expandedGroups.has(group.gid);
+
+		const gWrap = document.createElement("div");
+		const gRow = document.createElement("div");
+		gRow.className = "group-row";
+
+		const exp = document.createElement("button");
+		exp.type = "button";
+		exp.className = "group-expand";
+		exp.dataset.role = "group-expand";
+		exp.dataset.gidx = String(gIdx);
+		exp.textContent = open ? "▾" : "▸";
+		exp.title = open ? "접기" : "펼치기";
+
+		const chk = document.createElement("input");
+		chk.type = "checkbox";
+		chk.className = "group-check";
+		chk.dataset.role = "group-check";
+		chk.dataset.gidx = String(gIdx);
+		chk.checked = (group.state === "on");
+		chk.indeterminate = (group.state === "partial");
+
+		const label = document.createElement("span");
+		label.className = "group-label";
+		label.textContent = `${group.name ?? group.gid} (${group.nets.length})`;
+
+		gRow.append(exp, chk, label);
+		gWrap.appendChild(gRow);
+
+		if (open) {
+			const children = document.createElement("div");
+			children.className = "group-children";
+			group.nets.forEach((net, nIdx) => {
+				const nRow = document.createElement("label");
+				nRow.className = "net-row";
+				const nChk = document.createElement("input");
+				nChk.type = "checkbox";
+				nChk.className = "net-check";
+				nChk.dataset.role = "net-check";
+				nChk.dataset.gidx = String(gIdx);
+				nChk.dataset.nidx = String(nIdx);
+				nChk.checked = !!net.enabled;
+				const nLabel = document.createElement("span");
+				nLabel.className = "net-label";
+				nLabel.textContent = net.name ?? net.nid;
+				nRow.append(nChk, nLabel);
+				children.appendChild(nRow);
+			});
+			gWrap.appendChild(children);
+		}
+
+		groupTreeEl.appendChild(gWrap);
+	});
+}
 
 function renderCameraButtons() {
 	if (!cameraButtonsEl) return;
@@ -614,6 +721,7 @@ if (cameraButtonsEl) {
 initScenes();
 renderSceneList();
 renderCameraButtons();
+renderGroupTree();
 
 function getScenesForUI() {
 	const arr = [];
@@ -700,6 +808,7 @@ function removeScene(id) {
 		setActiveSceneById(DEFAULT_SCENE_ID);
 	} else {
 		renderSceneList();
+		renderGroupTree();
 	}
 
 	// 3) 이제 안전하게 dispose (activeScene이 더 이상 이 scene을 쓰지 않는 상태)
@@ -707,7 +816,10 @@ function removeScene(id) {
 
 	// 4) renderer 내부 캐시 정리(선택, but 유용)
 	if (renderer.renderLists?.dispose) renderer.renderLists.dispose();
-	else renderCameraButtons();
+	else {
+		renderCameraButtons();
+		renderGroupTree();
+	}
 }
 
 /* 7. 반응형 (창 크기의 변화에 대응) */
@@ -1091,3 +1203,53 @@ function animate() {
 }
 
 animate();
+
+
+if (groupTreeEl) {
+	groupTreeEl.addEventListener("click", (e) => {
+		const btn = e.target?.closest?.("button[data-role=\"group-expand\"]");
+		if (!btn) return;
+		const ctx = scenes.get(activeSceneId);
+		const design = ctx?.design;
+		if (!ctx || !design) return;
+		const ui = ensureGroupUiState(ctx);
+		const gIdx = Number(btn.dataset.gidx);
+		if (!Number.isFinite(gIdx) || gIdx < 0 || gIdx >= design.groups.length) return;
+		const gid = design.groups[gIdx].gid;
+		if (ui.expandedGroups.has(gid)) ui.expandedGroups.delete(gid);
+		else ui.expandedGroups.add(gid);
+		renderGroupTree();
+	});
+
+	groupTreeEl.addEventListener("change", (e) => {
+		const t = e.target;
+		const ctx = scenes.get(activeSceneId);
+		const design = ctx?.design;
+		if (!ctx || !design) return;
+
+		if (t?.dataset?.role === "group-check") {
+			const gIdx = Number(t.dataset.gidx);
+			if (!Number.isFinite(gIdx) || gIdx < 0 || gIdx >= design.groups.length) return;
+			const g = design.groups[gIdx];
+			const on = !!t.checked;
+			for (const n of g.nets) n.enabled = on;
+			refreshGroupState(g);
+			reapplyActiveDesignVisibility();
+			renderGroupTree();
+			return;
+		}
+
+		if (t?.dataset?.role === "net-check") {
+			const gIdx = Number(t.dataset.gidx);
+			const nIdx = Number(t.dataset.nidx);
+			if (!Number.isFinite(gIdx) || !Number.isFinite(nIdx)) return;
+			if (gIdx < 0 || gIdx >= design.groups.length) return;
+			const g = design.groups[gIdx];
+			if (nIdx < 0 || nIdx >= g.nets.length) return;
+			g.nets[nIdx].enabled = !!t.checked;
+			refreshGroupState(g);
+			reapplyActiveDesignVisibility();
+			renderGroupTree();
+		}
+	});
+}
