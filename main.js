@@ -120,7 +120,7 @@ let autoRotateZEnabled = false;
 let isMainControlsInteracting = false;
 
 
-const TOPVIEW_PAN_PIXELS_PER_SEC = 700;
+const TOPVIEW_PAN_PIXELS_PER_SEC = 500;
 const topviewPanPressed = new Set();
 
 function isTypingElement(el) {
@@ -433,6 +433,7 @@ function initScenes() {
 		view : null,
 	};
 	scenes.set(ctx.id, ctx);
+	syncAxisLengthForCtx(ctx);
 	activeScene = ctx.scene;
 	
 	// main 카메라 초기 상태를 "M 키"와 동일하게 세팅
@@ -467,6 +468,7 @@ function setActiveSceneById(id) {
 	activeSceneId = id;
 	const next = scenes.get(id);
 	activeScene = next.scene;
+	syncAxisLengthForCtx(next);
 	
 	applyViewState(next.view);
 	
@@ -508,6 +510,7 @@ async function addTextFilesAsScenes(files) {
 			view : design ? makeInitialViewForCtx(design) : cloneViewState(templateView),
 		};
 		
+		syncAxisLengthForCtx(ctx);
 		scenes.set(id, ctx);
 	}
 	
@@ -727,6 +730,55 @@ function onResize() {
 	}
 }
 window.addEventListener('resize', onResize);
+
+function computeRectRangeForCtx(ctx) {
+	const design = ctx?.design;
+	if (design) {
+		const w = (design.nx - 1) * design.dx;
+		const h = (design.ny - 1) * design.dy;
+		return Math.max(1, w, h);
+	}
+
+	const root = ctx?.scene?.userData?.designRoot;
+	if (root) {
+		const box = new THREE.Box3().setFromObject(root);
+		if (box.isEmpty()) return 10;
+		return Math.max(1, box.max.x - box.min.x, box.max.y - box.min.y);
+	}
+
+	return 10;
+}
+
+function setAxisLengthFromRectRange(scene, rectRange) {
+	if (!scene) return;
+	const axisLen = Math.max(2, rectRange * 2);
+	const headLen = Math.max(0.6, axisLen * 0.05);
+	const headWidth = Math.max(0.3, axisLen * 0.025);
+
+	const axX = scene.getObjectByName("axisX");
+	if (axX?.setLength) {
+		axX.position.set(-axisLen * 0.5, 0, 0);
+		axX.setLength(axisLen, headLen, headWidth);
+	}
+
+	const axY = scene.getObjectByName("axisY");
+	if (axY?.setLength) {
+		axY.position.set(0, -axisLen * 0.5, 0);
+		axY.setLength(axisLen, headLen, headWidth);
+	}
+
+	const axZ = scene.getObjectByName("axisZ");
+	if (axZ?.setLength) {
+		axZ.position.set(0, 0, -axisLen * 0.5);
+		axZ.setLength(axisLen, headLen, headWidth);
+	}
+}
+
+function syncAxisLengthForCtx(ctx) {
+	if (!ctx?.scene) return;
+	const rectRange = computeRectRangeForCtx(ctx);
+	setAxisLengthFromRectRange(ctx.scene, rectRange);
+}
 
 function makeDefaultScene() {
 	const s = new THREE.Scene();
