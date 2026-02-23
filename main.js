@@ -666,14 +666,17 @@ function makeDefaultScene() {
 	
 	const axX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-10, 0, 0), 20, 0xff0000, 0.5);
 	axX.name = "axisX";
+	setAxisOverlay(axX);
 	s.add(axX);
 
 	const axY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -10, 0), 20, 0x00ff00, 0.5);
 	axY.name = "axisY";
+	setAxisOverlay(axY);
 	s.add(axY);
 
 	const axZ = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -10), 20, 0x0000ff, 0.5);
 	axZ.name = "axisZ";
+	setAxisOverlay(axZ);
 	s.add(axZ);
 
 	const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -692,9 +695,17 @@ function makeDefaultScene() {
 function createBaseScene() {
 	const s = new THREE.Scene();
 	
-	s.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-10, 0, 0), 20, 0xff0000, 0.5));
-	s.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -10, 0), 20, 0x00ff00, 0.5));
-	s.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -10), 20, 0x0000ff, 0.5));
+	const axX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-10, 0, 0), 20, 0xff0000, 0.5);
+	setAxisOverlay(axX);
+	s.add(axX);
+
+	const axY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -10, 0), 20, 0x00ff00, 0.5);
+	setAxisOverlay(axY);
+	s.add(axY);
+
+	const axZ = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -10), 20, 0x0000ff, 0.5);
+	setAxisOverlay(axZ);
+	s.add(axZ);
 	
 	s.add(new THREE.AmbientLight(0xffffff, 0.4));
 	const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -702,6 +713,21 @@ function createBaseScene() {
 	s.add(dirLight);
 	
 	return s;
+}
+
+function setAxisOverlay(axisArrow) {
+	axisArrow.renderOrder = 1000;
+	axisArrow.traverse((obj) => {
+		if (!obj.material) return;
+		const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+		for (const mat of mats) {
+			mat.depthTest = false;
+			mat.depthWrite = false;
+			mat.transparent = true;
+			mat.needsUpdate = true;
+		}
+		obj.renderOrder = 1000;
+	});
 }
 
 function addPlaceholderCube(scene, color24) {
