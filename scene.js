@@ -144,11 +144,11 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		const planeGeo = new THREE.PlaneGeometry(w, h, 1, 1);
 		const planeMat = new THREE.MeshBasicMaterial({
 			color : planeColor,
-			transparent : false,
+			transparent : true,
 			opacity : planeOpacity,
 			side : THREE.DoubleSide,
 			depthTest : true,
-			depthWrite : true,
+			depthWrite : planeOpacity >= 0.999,
 			polygonOffset : true,
 			polygonOffsetFactor : 1,
 			polygonOffsetUnits : 1,

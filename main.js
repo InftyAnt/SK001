@@ -595,10 +595,14 @@ function refreshGroupState(group) {
 function reapplyActiveDesignVisibility() {
 	const ctx = scenes.get(activeSceneId);
 	if (!ctx?.design) return;
+
+	// 스타일 재적용 시 카메라/뷰 상태를 유지
+	const preservedView = captureViewState();
+	ctx.view = preservedView;
+
 	applyDesignToScene(ctx.scene, ctx.design, getDesignRenderOpts(ctx));
 	syncAxisLengthForCtx(ctx);
-	if (!ctx.view) ctx.view = makeInitialViewForCtx(ctx.design);
-	applyViewState(ctx.view);
+	applyViewState(preservedView);
 }
 
 function renderGroupTree() {
