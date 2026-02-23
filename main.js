@@ -120,7 +120,7 @@ let autoRotateZEnabled = false;
 let isMainControlsInteracting = false;
 
 
-const TOPVIEW_PAN_PIXELS_PER_SEC = 900;
+const TOPVIEW_PAN_PIXELS_PER_SEC = 700;
 const topviewPanPressed = new Set();
 
 function isTypingElement(el) {
