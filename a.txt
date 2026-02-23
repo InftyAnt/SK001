@@ -1,0 +1,31 @@
+# DESIGN-FMT v1 (small)
+DESIGN
+nlayer : 2
+nx : 5
+ny : 5
+dx : 1
+dy : 1
+layerGap : 2.0
+bumpRadius : 0.18
+tsvRadius : 0.25
+viaRadius : 0.12
+META
+author : "yujun"
+note : "small example"
+ENDMETA
+ENDDESIGN
+
+GROUP G0
+name : "Group0"
+color : "#FFAA00"
+state : on
+
+NET N0
+name : "net0"
+enabled : 1
+bendCount : 0
+start : bump 0 0 0
+end : bump 4 4 0
+ENDNET
+
+ENDGROUP

@@ -1,0 +1,67 @@
+# DESIGN-FMT v1 (large)
+DESIGN
+nlayer : 4
+nx : 24
+ny : 16
+dx : 0.5
+dy : 0.5
+layerGap : 2.0
+bumpRadius : 0.20
+tsvRadius : 0.30
+viaRadius : 0.10
+META
+designName : "HBM4-demo"
+corner : "typ"
+units : "grid"
+ENDMETA
+ENDDESIGN
+
+GROUP G_PWR
+name : "Power"
+color : "#FF4444"
+state : on
+META
+role : "PDN"
+ENDMETA
+
+NET N_VDD
+name : "VDD"
+enabled : 1
+bendCount : 3
+start : bump 3 4 3
+end : bump 22 15 0
+PATH
+grid 4 5 3
+grid 5 5 3
+grid 6 5 3
+via 6 5 2 kind=pwr
+grid 7 6 2
+grid 8 7 2
+grid 9 8 2
+grid 10 9 2
+via 10 9 1 kind=pwr
+grid 11 10 1
+grid 12 11 1
+grid 13 12 1
+grid 14 13 1
+grid 15 14 1
+grid 16 15 1
+via 16 15 0 kind=pwr
+grid 17 15 0
+grid 18 15 0
+grid 19 15 0
+grid 20 15 0
+grid 21 15 0
+ENDPATH
+VIAS
+via 6 5 2 kind=pwr
+via 10 9 1 kind=pwr
+via 16 15 0 kind=pwr
+ENDVIAS
+META
+critical : 1
+targetDrop_mV : 35
+ENDMETA
+ENDNET
+
+ENDGROUP

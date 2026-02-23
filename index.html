@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang = "ko">
+
+<head>
+	<meta charset = "utf-8" />
+	<meta name = "viewport" content = "width=device-width, initial-scale=1" />
+	
+	<title>
+		A
+	</title>
+
+	<script type = "importmap">
+		{
+			"imports": {
+				"three" : "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.js",
+				"three/addons/" : "https://cdn.jsdelivr.net/npm/three@0.183.1/examples/jsm/"
+			}
+		}
+	</script>
+	
+	<link rel = "stylesheet" href = "./style.css" />
+</head>
+
+<body>
+	<div id = "ui-left" class = "side-ui left collapsed" aria-label = "Left UI">
+		<div class = "panel-clip">
+			<div class = "panel">
+				<div class = "panel-header">
+					<span class = "panel-title">
+						Left
+					</span>
+				</div>
+				
+				<div class = "panel-body">
+					<section class = "tab-content" data-tab = "info">
+						<div class = "section-title">
+							Info
+						</div>
+						
+						<div class = "section-body">
+							왼쪽 패널의 기본 탭입니다.
+						</div>
+					</section>
+					
+					<section class = "tab-content" data-tab = "layers" hidden>
+						<div class = "section-title">
+							Layers
+						</div>
+						
+						<div class = "section-body">
+							추후 레이어 목록/토글 등을 넣으시면 됩니다.
+						</div>
+					</section>
+					
+					<section class = "tab-content" data-tab = "data" hidden>
+						<div class = "section-title">
+							Data
+						</div>
+						
+						<div class = "section-body">
+							<div class = "row" style = "gap : 8px; margin-bottom : 10px;">
+								<button id = "dataPickBtn" class = "btn">
+									텍스트 파일 추가
+								</button>
+								
+								<span class = "muted" style = "align-self : center;">
+									드롭도 가능합니다
+								</span>
+							</div>
+							
+							<input
+								id = "dataFileInput"
+								type = "file"
+								accept = ".txt,.log,.csv,text/plain"
+								multiple
+								hidden
+							/>
+							
+							<div id = "dataDrop" class = "dropzone" role = "button" aria-label = "파일 드롭 영역">
+								<div class = "dropzone-title">
+									여기에 텍스트 파일을 드롭
+								</div>
+								
+								<div class = "dropzone-sub">
+									업로드한 파일마다 별도의 Scene이 생성됩니다
+								</div>
+							</div>
+							
+							<div class = "scene-list-head">
+								<span>
+									Scenes
+								</span>
+								
+								<span class = "muted">
+									(클릭하여 전환)
+								</span>
+							</div>
+							
+							<ul id = "sceneList" class = "scene-list">
+							</ul>
+						</div>
+					</section>
+					
+					<section class = "tab-content" data-tab = "camera" hidden>
+						<div class = "section-title">
+							Camera
+						</div>
+
+						<div class = "section-body">
+							<div id = "cameraButtons" class = "camera-list">
+							</div>
+							<div class = "muted camera-hint">
+								디자인이 로드되면 레이어별 TopView 버튼이 생성됩니다.
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+		
+		<div class = "dock" role = "tablist" aria-label = "Left dock">
+			<button class = "dock-btn toggle" data-action = "toggle" title = "접기/펴기" aria-label = "접기/펴기">
+				≡
+			</button>
+			
+			<button class = "dock-btn" data-tab = "info" title = "Info">
+				i
+			</button>
+			
+			<button class = "dock-btn" data-tab = "layers" title = "Layers">
+				L
+			</button>
+			
+			<button class = "dock-btn" data-tab = "data" title = "Data">
+				D
+			</button>
+			
+			<button class = "dock-btn" data-tab = "camera" title = "Camera">
+				C
+			</button>
+		</div>
+	</div>
+	
+	<div id = "ui-right" class = "side-ui right" aria-label = "Right UI">
+		<div class = "dock" role = "tablist" aria-label = "Right dock">
+			<button class = "dock-btn toggle" data-action = "toggle" title = "접기/펴기" aria-label = "접기/펴기">
+				≡
+			</button>
+			
+			<button class = "dock-btn" data-tab = "zoom" title = "Zoom">
+				Z
+			</button>
+			
+			<button class = "dock-btn" data-tab = "settings" title = "Settings">
+				⚙
+			</button>
+		</div>
+		
+		<div class = "panel-clip">
+			<div class = "panel">
+				<div class = "panel-header">
+					<span class = "panel-title">
+						Right
+					</span>
+				</div>
+				
+				<div class = "panel-body">
+					<section class = "tab-content" data-tab = "zoom">
+						<div id = "ui-zoom" class = "zoom-card">
+							<div class = "row">
+								<span class = "label">
+									Zoom
+								</span>
+								
+								<span id = "zoomValue" class = "value">
+									-
+								</span>
+							</div>
+							
+							<input id = "zoomSlider" type = "range" min = "0" max = "1000" value = "500" />
+							
+							<div class = "hint">
+								휠/핀치/슬라이더 모두 동기화
+							</div>
+						</div>
+					</section>
+					
+					<section class = "tab-content" data-tab = "settings" hidden>
+						<div class = "section-title">
+							Settings
+						</div>
+						
+						<div class = "section-body">
+							<label class = "toggle-row">
+								<input id = "mainAutoRotateZ" type = "checkbox" />
+								
+								<span>
+									메인 카메라 Z축 자동 회전
+								</span>
+							</label>
+							
+							<div class="help-text">
+								체크하면 Main(Persp) 카메라가 Z축(위쪽 축) 기준으로 계속 회전합니다.
+							</div>
+						</div>
+					</section>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div id = "crosshair" aria-hidden = "true">
+	</div>
+	
+	<script type = "module" src = "./main.js">
+	</script>
+</body>
+
+</html>
