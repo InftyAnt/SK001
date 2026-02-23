@@ -199,7 +199,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	color: gridLineColor,
 	transparent: true,
 	opacity: 0.9,
-	depthTest: false,
+	depthTest: true,   // 윗 레이어(불투명) 뒤의 격자는 가려지도록 유지
 	depthWrite: false,
 	});
 
