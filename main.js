@@ -119,6 +119,73 @@ const rotateZToggleEl = document.getElementById("mainAutoRotateZ");
 let autoRotateZEnabled = false;
 let isMainControlsInteracting = false;
 
+
+const TOPVIEW_PAN_PIXELS_PER_SEC = 900;
+const topviewPanPressed = new Set();
+
+function isTypingElement(el) {
+	if (!el) return false;
+	const tag = (el.tagName || "").toLowerCase();
+	return el.isContentEditable || tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function getTopViewPanDirFromKey(code) {
+	switch (code) {
+		case "ArrowUp":
+		case "KeyW":
+			return { x : 0, y : 1 };
+		case "ArrowDown":
+		case "KeyS":
+			return { x : 0, y : -1 };
+		case "ArrowLeft":
+		case "KeyA":
+			return { x : -1, y : 0 };
+		case "ArrowRight":
+		case "KeyD":
+			return { x : 1, y : 0 };
+		default:
+			return null;
+	}
+}
+
+function updateTopViewPan(dt) {
+	if (!camera.isOrthographicCamera) return;
+	if (topviewPanPressed.size === 0) return;
+
+	let dx = 0;
+	let dy = 0;
+	for (const code of topviewPanPressed) {
+		const dir = getTopViewPanDirFromKey(code);
+		if (!dir) continue;
+		dx += dir.x;
+		dy += dir.y;
+	}
+	if (dx === 0 && dy === 0) return;
+
+	const len = Math.hypot(dx, dy) || 1;
+	dx /= len;
+	dy /= len;
+
+	const screenH = Math.max(1, renderer.domElement.clientHeight || window.innerHeight || 1);
+	const worldPerPixel = (topviewcamera.top - topviewcamera.bottom) / (screenH * topviewcamera.zoom);
+	const panDist = TOPVIEW_PAN_PIXELS_PER_SEC * worldPerPixel * dt;
+
+	const move = new THREE.Vector3(dx * panDist, dy * panDist, 0);
+	topviewcamera.position.add(move);
+	topviewControls.target.add(move);
+	topviewcamera.lookAt(topviewControls.target);
+	topviewControls.update();
+	zoomUI.syncSliderFromView();
+}
+
+window.addEventListener("keyup", (e) => {
+	if (topviewPanPressed.has(e.code)) topviewPanPressed.delete(e.code);
+});
+
+window.addEventListener("blur", () => {
+	topviewPanPressed.clear();
+});
+
 // OrbitControls의 autoRotate는 카메라의 up축(현재는 Z축)을 기준으로 target 주위를 회전합니다.
 mainControls.autoRotateSpeed = 1.0; // 필요하면 값 조절(기본: 2.0)
 
@@ -900,6 +967,14 @@ function toggleCamera() {
 
 // 8-D. (예시) 특정 타겟을 향한 카메라 이동 함수를 M키와 바인드
 window.addEventListener("keydown", (e) => {
+	if (!e.repeat && !isTypingElement(document.activeElement)) {
+		const panDir = getTopViewPanDirFromKey(e.code);
+		if (panDir) {
+			topviewPanPressed.add(e.code);
+			if (camera.isOrthographicCamera) e.preventDefault();
+		}
+	}
+
 	if (e.code !== "KeyM") return;
 
 	// Main(Persp)일 때는 기존 동작 유지
@@ -949,6 +1024,7 @@ function animate() {
 	
 	perspMover.update();
 	topviewMover.update();
+	updateTopViewPan(dt);
 	
 	mainControls.autoRotate = 
 		autoRotateZEnabled &&
