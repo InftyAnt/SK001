@@ -476,6 +476,7 @@ function setActiveSceneById(id) {
 	
 	renderCameraButtons();
 	renderGroupTree();
+	syncLayerStyleControls();
 }
 
 async function addTextFilesAsScenes(files) {
@@ -494,7 +495,7 @@ async function addTextFilesAsScenes(files) {
 		let design = null;
 		try {
 			design = parseDesignText(rawText);
-			applyDesignToScene(s, design); // scene.js가 design.layerGap을 쓰면 자동 적용
+			applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 1.0 }); // scene.js가 design.layerGap을 쓰면 자동 적용
 		} catch (err) {
 			console.error("[parse/apply failed]", file.name, err);
 			addPlaceholderCube(s, hashColor24(file.name));
@@ -527,6 +528,48 @@ const dataUI = initDataFilesUI({
 
 const cameraButtonsEl = document.getElementById("cameraButtons");
 const groupTreeEl = document.getElementById("groupTree");
+const layerColorInputEl = document.getElementById("layerColorInput");
+const layerOpacityInputEl = document.getElementById("layerOpacityInput");
+const layerOpacityValueEl = document.getElementById("layerOpacityValue");
+
+
+
+function clamp01(v) {
+	return Math.min(1, Math.max(0, v));
+}
+
+function getDesignRenderOpts(ctx) {
+	if (!ctx) return { planeColor : 0x404040, planeOpacity : 1.0 };
+	if (!ctx.ui) ctx.ui = {};
+	if (!ctx.ui.layerStyle) {
+		ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+	}
+	const colorHex = Number.parseInt(String(ctx.ui.layerStyle.planeColor).replace(/^#/, ""), 16);
+	return {
+		planeColor : Number.isFinite(colorHex) ? colorHex : 0x404040,
+		planeOpacity : clamp01(Number(ctx.ui.layerStyle.planeOpacity ?? 1)),
+	};
+}
+
+function syncLayerStyleControls() {
+	if (!layerColorInputEl || !layerOpacityInputEl || !layerOpacityValueEl) return;
+	const ctx = scenes.get(activeSceneId);
+	const hasDesign = !!ctx?.design;
+	layerColorInputEl.disabled = !hasDesign;
+	layerOpacityInputEl.disabled = !hasDesign;
+
+	if (!hasDesign) {
+		layerColorInputEl.value = "#404040";
+		layerOpacityInputEl.value = "1";
+		layerOpacityValueEl.textContent = "1.00";
+		return;
+	}
+	if (!ctx.ui) ctx.ui = {};
+	if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+	layerColorInputEl.value = ctx.ui.layerStyle.planeColor;
+	layerOpacityInputEl.value = String(ctx.ui.layerStyle.planeOpacity);
+	layerOpacityValueEl.textContent = Number(ctx.ui.layerStyle.planeOpacity).toFixed(2);
+}
 
 function ensureGroupUiState(ctx) {
 	if (!ctx) return null;
@@ -552,7 +595,7 @@ function refreshGroupState(group) {
 function reapplyActiveDesignVisibility() {
 	const ctx = scenes.get(activeSceneId);
 	if (!ctx?.design) return;
-	applyDesignToScene(ctx.scene, ctx.design);
+	applyDesignToScene(ctx.scene, ctx.design, getDesignRenderOpts(ctx));
 	syncAxisLengthForCtx(ctx);
 	if (!ctx.view) ctx.view = makeInitialViewForCtx(ctx.design);
 	applyViewState(ctx.view);
@@ -722,6 +765,7 @@ initScenes();
 renderSceneList();
 renderCameraButtons();
 renderGroupTree();
+syncLayerStyleControls();
 
 function getScenesForUI() {
 	const arr = [];
@@ -809,6 +853,7 @@ function removeScene(id) {
 	} else {
 		renderSceneList();
 		renderGroupTree();
+		syncLayerStyleControls();
 	}
 
 	// 3) 이제 안전하게 dispose (activeScene이 더 이상 이 scene을 쓰지 않는 상태)
@@ -1251,5 +1296,30 @@ if (groupTreeEl) {
 			reapplyActiveDesignVisibility();
 			renderGroupTree();
 		}
+	});
+}
+
+
+if (layerColorInputEl) {
+	layerColorInputEl.addEventListener("input", () => {
+		const ctx = scenes.get(activeSceneId);
+		if (!ctx?.design) return;
+		if (!ctx.ui) ctx.ui = {};
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+		ctx.ui.layerStyle.planeColor = layerColorInputEl.value;
+		reapplyActiveDesignVisibility();
+		syncLayerStyleControls();
+	});
+}
+
+if (layerOpacityInputEl) {
+	layerOpacityInputEl.addEventListener("input", () => {
+		const ctx = scenes.get(activeSceneId);
+		if (!ctx?.design) return;
+		if (!ctx.ui) ctx.ui = {};
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+		ctx.ui.layerStyle.planeOpacity = clamp01(Number(layerOpacityInputEl.value));
+		reapplyActiveDesignVisibility();
+		syncLayerStyleControls();
 	});
 }
