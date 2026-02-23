@@ -164,7 +164,10 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	// 1.5) 그리드 선 (레이어별 LineSegments)
 	// =========================
 	const gridLineStep = Math.max(1, opts.gridLineStep ?? 1);     // 1이면 모든 줄, 2면 한 줄 건너
-	const gridLineColor = opts.gridLineColor ?? 0x2f2f2f;         // planeColor(0x404040)보다 약간 진하게
+	const pc = new THREE.Color(planeColor);
+	const planeLuma = (0.2126 * pc.r) + (0.7152 * pc.g) + (0.0722 * pc.b);
+	const autoGridLineColor = (planeLuma > 0.55) ? 0x1f1f1f : 0xd0d0d0;
+	const gridLineColor = opts.gridLineColor ?? autoGridLineColor; // 레이어 색 대비 자동 보정
 	const gridLineZ = opts.gridLineZ ?? (zLift * 0.25);           // plane 위로 살짝
 
 	function buildGridLinesGeometry() {
@@ -194,9 +197,10 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const gridLineGeom = buildGridLinesGeometry();
 	const gridLineMat = new THREE.LineBasicMaterial({
 	color: gridLineColor,
-	transparent: false,
-	depthTest: true,
-	depthWrite: false, // 라인이 다른 오브젝트를 “가려버리는” 부작용 방지
+	transparent: true,
+	opacity: 0.9,
+	depthTest: false,
+	depthWrite: false,
 	});
 
 	for (let L = 0; L < design.nlayer; L++) {
