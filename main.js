@@ -666,17 +666,17 @@ function makeDefaultScene() {
 	
 	const axX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-10, 0, 0), 20, 0xff0000, 0.5);
 	axX.name = "axisX";
-	setAxisOverlay(axX);
+	setAxisOverlay(axX, false);
 	s.add(axX);
 
 	const axY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -10, 0), 20, 0x00ff00, 0.5);
 	axY.name = "axisY";
-	setAxisOverlay(axY);
+	setAxisOverlay(axY, false);
 	s.add(axY);
 
 	const axZ = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -10), 20, 0x0000ff, 0.5);
 	axZ.name = "axisZ";
-	setAxisOverlay(axZ);
+	setAxisOverlay(axZ, false);
 	s.add(axZ);
 
 	const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -696,15 +696,18 @@ function createBaseScene() {
 	const s = new THREE.Scene();
 	
 	const axX = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(-10, 0, 0), 20, 0xff0000, 0.5);
-	setAxisOverlay(axX);
+	axX.name = "axisX";
+	setAxisOverlay(axX, false);
 	s.add(axX);
 
 	const axY = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, -10, 0), 20, 0x00ff00, 0.5);
-	setAxisOverlay(axY);
+	axY.name = "axisY";
+	setAxisOverlay(axY, false);
 	s.add(axY);
 
 	const axZ = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, -10), 20, 0x0000ff, 0.5);
-	setAxisOverlay(axZ);
+	axZ.name = "axisZ";
+	setAxisOverlay(axZ, false);
 	s.add(axZ);
 	
 	s.add(new THREE.AmbientLight(0xffffff, 0.4));
@@ -715,19 +718,28 @@ function createBaseScene() {
 	return s;
 }
 
-function setAxisOverlay(axisArrow) {
-	axisArrow.renderOrder = 1000;
+function setAxisOverlay(axisArrow, isTopView) {
+	axisArrow.renderOrder = isTopView ? 1000 : 0;
 	axisArrow.traverse((obj) => {
 		if (!obj.material) return;
 		const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
 		for (const mat of mats) {
-			mat.depthTest = false;
-			mat.depthWrite = false;
+			mat.depthTest = !isTopView;
+			mat.depthWrite = !isTopView;
 			mat.transparent = true;
 			mat.needsUpdate = true;
 		}
-		obj.renderOrder = 1000;
+		obj.renderOrder = isTopView ? 1000 : 0;
 	});
+}
+
+function syncAxisOverlayForCamera(scene, activeCamera) {
+	if (!scene || !activeCamera) return;
+	const isTopView = !!activeCamera.isOrthographicCamera;
+	for (const axisName of ["axisX", "axisY", "axisZ"]) {
+		const axis = scene.getObjectByName(axisName);
+		if (axis) setAxisOverlay(axis, isTopView);
+	}
 }
 
 function addPlaceholderCube(scene, color24) {
@@ -945,7 +957,9 @@ function animate() {
 		!isMainControlsInteracting;
 	
 	getActiveControls().update();
-	renderer.render(activeScene, getActiveCamera());
+	const activeCam = getActiveCamera();
+	syncAxisOverlayForCamera(activeScene, activeCam);
+	renderer.render(activeScene, activeCam);
 }
 
 animate();
