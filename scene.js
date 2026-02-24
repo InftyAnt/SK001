@@ -46,6 +46,9 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const gridRadius = opts.gridRadius ?? (Math.min(design.dx, design.dy) * 0.10);
 	const gridOpacity = opts.gridOpacity ?? 0.45;
 	const gridSegments = opts.gridSegments ?? 16;
+	const gridColor = opts.gridColor ?? 0xaaaaaa;
+	const gridPointColor = opts.gridPointColor ?? gridColor;
+	const gridLineColor = opts.gridLineColor ?? gridColor;
 
 	// 평면/겹침 방지
 	const planeOpacity = opts.planeOpacity ?? 1.0;
@@ -163,7 +166,6 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	// 1.5) 그리드 선 (레이어별 LineSegments)
 	// =========================
 	const gridLineStep = Math.max(1, opts.gridLineStep ?? 1);     // 1이면 모든 줄, 2면 한 줄 건너
-	const gridLineColor = opts.gridLineColor ?? 0x2f2f2f;         // planeColor(0x404040)보다 약간 진하게
 	const gridLineZ = opts.gridLineZ ?? (zLift * 0.25);           // plane 위로 살짝
 
 	function buildGridLinesGeometry() {
@@ -212,7 +214,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	for (let L = 0; L < design.nlayer; L++) {
 		const geom = new THREE.SphereGeometry(gridRadius, gridSegments, gridSegments);
 		const mat = new THREE.MeshBasicMaterial({
-			color : 0xaaaaaa,
+			color : gridPointColor,
 			transparent : false,
 			depthTest : true,
 			depthWrite : true,

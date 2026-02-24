@@ -116,6 +116,14 @@ const topviewMover = createOrthoCameraMover({
 
 // 6-F. 메인 카메라 Z축 자동 회전 토글
 const rotateZToggleEl = document.getElementById("mainAutoRotateZ");
+const gridPointColorEl = document.getElementById("gridPointColor");
+const gridLineColorEl = document.getElementById("gridLineColor");
+
+const sceneRenderOpts = {
+	gridPointColor : 0xaaaaaa,
+	gridLineColor : 0xaaaaaa,
+};
+
 let autoRotateZEnabled = false;
 let isMainControlsInteracting = false;
 
@@ -139,6 +147,39 @@ if (rotateZToggleEl) {
     setAutoRotateZ(rotateZToggleEl.checked);
   });
 }
+
+function parseHexColor(input, fallback) {
+	if (typeof input !== "string") return fallback;
+	const m = input.trim().match(/^#?([0-9a-fA-F]{6})$/);
+	if (!m) return fallback;
+	return Number.parseInt(m[1], 16);
+}
+
+function rerenderSceneDesign(ctx) {
+	if (!ctx?.design || !ctx?.scene) return;
+	applyDesignToScene(ctx.scene, ctx.design, sceneRenderOpts);
+}
+
+function rerenderAllDesignScenes() {
+	for (const ctx of scenes.values()) rerenderSceneDesign(ctx);
+}
+
+function syncGridColorUI() {
+	if (gridPointColorEl) gridPointColorEl.value = `#${sceneRenderOpts.gridPointColor.toString(16).padStart(6, "0")}`;
+	if (gridLineColorEl) gridLineColorEl.value = `#${sceneRenderOpts.gridLineColor.toString(16).padStart(6, "0")}`;
+}
+
+gridPointColorEl?.addEventListener("input", () => {
+	sceneRenderOpts.gridPointColor = parseHexColor(gridPointColorEl.value, sceneRenderOpts.gridPointColor);
+	rerenderAllDesignScenes();
+});
+
+gridLineColorEl?.addEventListener("input", () => {
+	sceneRenderOpts.gridLineColor = parseHexColor(gridLineColorEl.value, sceneRenderOpts.gridLineColor);
+	rerenderAllDesignScenes();
+});
+
+syncGridColorUI();
 
 // 6-E. uipanels.js의 함수 호출
 initSidePanels({
@@ -424,7 +465,7 @@ async function addTextFilesAsScenes(files) {
 		let design = null;
 		try {
 			design = parseDesignText(rawText);
-			applyDesignToScene(s, design); // scene.js가 design.layerGap을 쓰면 자동 적용
+			applyDesignToScene(s, design, sceneRenderOpts); // scene.js가 design.layerGap을 쓰면 자동 적용
 		} catch (err) {
 			console.error("[parse/apply failed]", file.name, err);
 			addPlaceholderCube(s, hashColor24(file.name));
