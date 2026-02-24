@@ -173,9 +173,7 @@ function updateTopViewPan(dt) {
 	const move = new THREE.Vector3(dx * panDist, dy * panDist, 0);
 	topviewcamera.position.add(move);
 	topviewControls.target.add(move);
-	topviewcamera.lookAt(topviewControls.target);
-	topviewControls.update();
-	zoomUI.syncSliderFromView();
+	// 컨트롤/렌더 루프에서 update가 수행되므로 여기서 중복 호출하지 않습니다.
 }
 
 window.addEventListener("keyup", (e) => {
