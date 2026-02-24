@@ -116,11 +116,17 @@ const topviewMover = createOrthoCameraMover({
 
 // 6-F. 메인 카메라 Z축 자동 회전 토글
 const rotateZToggleEl = document.getElementById("mainAutoRotateZ");
-const axisShowMainEl = document.getElementById("axisShowMain");
-const axisShowTopEl = document.getElementById("axisShowTop");
+const axisMainAllEl = document.getElementById("axisMainAll");
+const axisMainXEl = document.getElementById("axisMainX");
+const axisMainYEl = document.getElementById("axisMainY");
+const axisMainZEl = document.getElementById("axisMainZ");
+const axisTopAllEl = document.getElementById("axisTopAll");
+const axisTopXEl = document.getElementById("axisTopX");
+const axisTopYEl = document.getElementById("axisTopY");
+const axisTopZEl = document.getElementById("axisTopZ");
 let autoRotateZEnabled = false;
-let showAxesInMain = true;
-let showAxesInTop = true;
+let axisVisibleMain = { x : true, y : true, z : true };
+let axisVisibleTop = { x : true, y : true, z : false };
 let isMainControlsInteracting = false;
 
 
@@ -211,21 +217,68 @@ if (rotateZToggleEl) {
   });
 }
 
-if (axisShowMainEl) {
-	axisShowMainEl.checked = showAxesInMain;
-	axisShowMainEl.addEventListener("change", () => {
-		showAxesInMain = !!axisShowMainEl.checked;
-		syncAxisVisibilityForCamera(activeScene, getActiveCamera());
-	});
+function syncAxisVisibilityControls() {
+	if (axisMainXEl) axisMainXEl.checked = !!axisVisibleMain.x;
+	if (axisMainYEl) axisMainYEl.checked = !!axisVisibleMain.y;
+	if (axisMainZEl) axisMainZEl.checked = !!axisVisibleMain.z;
+	if (axisTopXEl) axisTopXEl.checked = !!axisVisibleTop.x;
+	if (axisTopYEl) axisTopYEl.checked = !!axisVisibleTop.y;
+	if (axisTopZEl) axisTopZEl.checked = !!axisVisibleTop.z;
+
+	if (axisMainAllEl) {
+		const all = !!axisVisibleMain.x && !!axisVisibleMain.y && !!axisVisibleMain.z;
+		const any = !!axisVisibleMain.x || !!axisVisibleMain.y || !!axisVisibleMain.z;
+		axisMainAllEl.checked = all;
+		axisMainAllEl.indeterminate = any && !all;
+	}
+	if (axisTopAllEl) {
+		const all = !!axisVisibleTop.x && !!axisVisibleTop.y && !!axisVisibleTop.z;
+		const any = !!axisVisibleTop.x || !!axisVisibleTop.y || !!axisVisibleTop.z;
+		axisTopAllEl.checked = all;
+		axisTopAllEl.indeterminate = any && !all;
+	}
 }
 
-if (axisShowTopEl) {
-	axisShowTopEl.checked = showAxesInTop;
-	axisShowTopEl.addEventListener("change", () => {
-		showAxesInTop = !!axisShowTopEl.checked;
+function bindAxisVisibilityControls() {
+	const applyNow = () => {
+		syncAxisVisibilityControls();
 		syncAxisVisibilityForCamera(activeScene, getActiveCamera());
-	});
+	};
+
+	if (axisMainAllEl) {
+		axisMainAllEl.addEventListener("change", () => {
+			const v = !!axisMainAllEl.checked;
+			axisVisibleMain = { x : v, y : v, z : v };
+			applyNow();
+		});
+	}
+	if (axisTopAllEl) {
+		axisTopAllEl.addEventListener("change", () => {
+			const v = !!axisTopAllEl.checked;
+			axisVisibleTop = { x : v, y : v, z : v };
+			applyNow();
+		});
+	}
+
+	const bindOne = (el, cam, key) => {
+		if (!el) return;
+		el.addEventListener("change", () => {
+			if (cam === "main") axisVisibleMain[key] = !!el.checked;
+			else axisVisibleTop[key] = !!el.checked;
+			applyNow();
+		});
+	};
+	bindOne(axisMainXEl, "main", "x");
+	bindOne(axisMainYEl, "main", "y");
+	bindOne(axisMainZEl, "main", "z");
+	bindOne(axisTopXEl, "top", "x");
+	bindOne(axisTopYEl, "top", "y");
+	bindOne(axisTopZEl, "top", "z");
+
+	applyNow();
 }
+
+bindAxisVisibilityControls();
 
 // 6-E. uipanels.js의 함수 호출
 initSidePanels({
@@ -367,18 +420,20 @@ function captureViewState() {
 	return v;
 }
 
-function setAxesVisible(scene, visible) {
+function setAxesVisible(scene, vis) {
 	if (!scene) return;
-	for (const axisName of ["axisX", "axisY", "axisZ"]) {
-		const a = scene.getObjectByName(axisName);
-		if (a) a.visible = !!visible;
-	}
+	const axX = scene.getObjectByName("axisX");
+	const axY = scene.getObjectByName("axisY");
+	const axZ = scene.getObjectByName("axisZ");
+	if (axX) axX.visible = !!vis.x;
+	if (axY) axY.visible = !!vis.y;
+	if (axZ) axZ.visible = !!vis.z;
 }
 
 function syncAxisVisibilityForCamera(scene, activeCam) {
 	if (!scene || !activeCam) return;
-	const visible = activeCam.isOrthographicCamera ? showAxesInTop : showAxesInMain;
-	setAxesVisible(scene, visible);
+	const vis = activeCam.isOrthographicCamera ? axisVisibleTop : axisVisibleMain;
+	setAxesVisible(scene, vis);
 }
 
 function applyViewState(v) {

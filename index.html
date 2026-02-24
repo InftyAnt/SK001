@@ -222,15 +222,27 @@
 								체크하면 Main(Persp) 카메라가 Z축(위쪽 축) 기준으로 계속 회전합니다.
 							</div>
 
-							<label class = "toggle-row">
-								<input id = "axisShowMain" type = "checkbox" checked />
-								<span>Main 카메라에서 축 표시</span>
-							</label>
+							<div class = "section-title" style = "margin-top : 12px;">Axis Visibility</div>
 
 							<label class = "toggle-row">
-								<input id = "axisShowTop" type = "checkbox" checked />
-								<span>TopView 카메라에서 축 표시</span>
+								<input id = "axisMainAll" type = "checkbox" checked />
+								<span>Main 전체 축 표시</span>
 							</label>
+							<div class = "axis-subrow">
+								<label><input id = "axisMainX" type = "checkbox" checked /> X</label>
+								<label><input id = "axisMainY" type = "checkbox" checked /> Y</label>
+								<label><input id = "axisMainZ" type = "checkbox" checked /> Z</label>
+							</div>
+
+							<label class = "toggle-row">
+								<input id = "axisTopAll" type = "checkbox" />
+								<span>TopView 전체 축 표시</span>
+							</label>
+							<div class = "axis-subrow">
+								<label><input id = "axisTopX" type = "checkbox" checked /> X</label>
+								<label><input id = "axisTopY" type = "checkbox" checked /> Y</label>
+								<label><input id = "axisTopZ" type = "checkbox" /> Z</label>
+							</div>
 						</div>
 					</section>
 				</div>

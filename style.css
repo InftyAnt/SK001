@@ -509,3 +509,18 @@ canvas {
 	border-radius : 8px;
 	background : rgba(255, 255, 255, 0.03);
 }
+
+
+.axis-subrow {
+	display : flex;
+	gap : 12px;
+	margin : -2px 0 8px 26px;
+	font-size : 12px;
+	opacity : 0.9;
+}
+
+.axis-subrow label {
+	display : inline-flex;
+	align-items : center;
+	gap : 4px;
+}
