@@ -121,6 +121,7 @@ let isMainControlsInteracting = false;
 
 
 const TOPVIEW_PAN_PIXELS_PER_SEC = 500;
+const TOPVIEW_MIN_GRID_PIXEL_SPACING = 6;
 const topviewPanPressed = new Set();
 
 function isTypingElement(el) {
@@ -168,7 +169,8 @@ function updateTopViewPan(dt) {
 
 	const screenH = Math.max(1, renderer.domElement.clientHeight || window.innerHeight || 1);
 	const worldPerPixel = (topviewcamera.top - topviewcamera.bottom) / (screenH * topviewcamera.zoom);
-	const panDist = TOPVIEW_PAN_PIXELS_PER_SEC * worldPerPixel * dt;
+	const safeDt = Math.min(dt, 1 / 60); // 프레임 드랍 시 과도한 점프 완화
+	const panDist = TOPVIEW_PAN_PIXELS_PER_SEC * worldPerPixel * safeDt;
 
 	const move = new THREE.Vector3(dx * panDist, dy * panDist, 0);
 	topviewcamera.position.add(move);
@@ -1230,6 +1232,26 @@ window.addEventListener("keydown", (e) => {
 	}
 });
 
+function updateAdaptiveGridVisibility(scene, activeCam) {
+	const root = scene?.userData?.designRoot;
+	const lines = root?.userData?.gridLineMeshes;
+	const gridPitch = root?.userData?.gridPitch;
+	if (!lines || !Array.isArray(lines) || lines.length === 0) return;
+
+	// 기본: 탑뷰가 아닐 때는 항상 표시
+	if (!activeCam?.isOrthographicCamera || !Number.isFinite(gridPitch) || gridPitch <= 0) {
+		for (const m of lines) m.visible = true;
+		return;
+	}
+
+	const screenH = Math.max(1, renderer.domElement.clientHeight || window.innerHeight || 1);
+	const worldPerPixel = (activeCam.top - activeCam.bottom) / (screenH * activeCam.zoom);
+	const pixelSpacing = gridPitch / Math.max(1e-9, worldPerPixel);
+	const show = pixelSpacing >= TOPVIEW_MIN_GRID_PIXEL_SPACING;
+
+	for (const m of lines) m.visible = show;
+}
+
 /* 11. 애니메이션 */
 const clock = new THREE.Clock();
 function animate() {
@@ -1252,6 +1274,7 @@ function animate() {
 	getActiveControls().update();
 	const activeCam = getActiveCamera();
 	syncAxisOverlayForCamera(activeScene, activeCam);
+	updateAdaptiveGridVisibility(activeScene, activeCam);
 	renderer.render(activeScene, activeCam);
 }
 

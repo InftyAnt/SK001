@@ -114,6 +114,9 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	
 	const viaRings = [];
 	root.userData.viaRings = viaRings;
+	const gridLineMeshes = [];
+	root.userData.gridLineMeshes = gridLineMeshes;
+	root.userData.gridPitch = Math.min(design.dx, design.dy);
 
 	// 격리 토글 함수(외부에서 main.js가 호출)
 	root.userData.layerGroups = layerGroups;
@@ -209,6 +212,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	lines.name = `gridLines:L${L}`;
 	lines.renderOrder = -15; // plane(-20) 위
 	layerGroups[L].add(lines);
+	gridLineMeshes.push(lines);
 	}
 
 	// =========================
