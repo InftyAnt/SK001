@@ -116,7 +116,11 @@ const topviewMover = createOrthoCameraMover({
 
 // 6-F. 메인 카메라 Z축 자동 회전 토글
 const rotateZToggleEl = document.getElementById("mainAutoRotateZ");
+const axisShowMainEl = document.getElementById("axisShowMain");
+const axisShowTopEl = document.getElementById("axisShowTop");
 let autoRotateZEnabled = false;
+let showAxesInMain = true;
+let showAxesInTop = true;
 let isMainControlsInteracting = false;
 
 
@@ -205,6 +209,22 @@ if (rotateZToggleEl) {
   rotateZToggleEl.addEventListener("change", () => {
     setAutoRotateZ(rotateZToggleEl.checked);
   });
+}
+
+if (axisShowMainEl) {
+	axisShowMainEl.checked = showAxesInMain;
+	axisShowMainEl.addEventListener("change", () => {
+		showAxesInMain = !!axisShowMainEl.checked;
+		syncAxisVisibilityForCamera(activeScene, getActiveCamera());
+	});
+}
+
+if (axisShowTopEl) {
+	axisShowTopEl.checked = showAxesInTop;
+	axisShowTopEl.addEventListener("change", () => {
+		showAxesInTop = !!axisShowTopEl.checked;
+		syncAxisVisibilityForCamera(activeScene, getActiveCamera());
+	});
 }
 
 // 6-E. uipanels.js의 함수 호출
@@ -347,9 +367,18 @@ function captureViewState() {
 	return v;
 }
 
-function setZAxisVisible(visible) {
-	const z = activeScene?.getObjectByName("axisZ");
-	if (z) z.visible = !!visible;
+function setAxesVisible(scene, visible) {
+	if (!scene) return;
+	for (const axisName of ["axisX", "axisY", "axisZ"]) {
+		const a = scene.getObjectByName(axisName);
+		if (a) a.visible = !!visible;
+	}
+}
+
+function syncAxisVisibilityForCamera(scene, activeCam) {
+	if (!scene || !activeCam) return;
+	const visible = activeCam.isOrthographicCamera ? showAxesInTop : showAxesInMain;
+	setAxesVisible(scene, visible);
 }
 
 function applyViewState(v) {
@@ -414,8 +443,7 @@ function applyViewState(v) {
 			root.userData.setIsolatedLayer(null);
 		}
 	}
-	
-	setZAxisVisible(v.active !== "ortho");
+
 }
 
 function cloneViewState(v) {
@@ -1274,6 +1302,7 @@ function animate() {
 	getActiveControls().update();
 	const activeCam = getActiveCamera();
 	syncAxisOverlayForCamera(activeScene, activeCam);
+	syncAxisVisibilityForCamera(activeScene, activeCam);
 	updateAdaptiveGridVisibility(activeScene, activeCam);
 	renderer.render(activeScene, activeCam);
 }
