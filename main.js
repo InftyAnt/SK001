@@ -531,6 +531,7 @@ const groupTreeEl = document.getElementById("groupTree");
 const layerColorInputEl = document.getElementById("layerColorInput");
 const layerOpacityInputEl = document.getElementById("layerOpacityInput");
 const layerOpacityValueEl = document.getElementById("layerOpacityValue");
+const gridColorInputEl = document.getElementById("gridColorInput");
 
 
 
@@ -542,33 +543,38 @@ function getDesignRenderOpts(ctx) {
 	if (!ctx) return { planeColor : 0x404040, planeOpacity : 1.0 };
 	if (!ctx.ui) ctx.ui = {};
 	if (!ctx.ui.layerStyle) {
-		ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+		ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0, gridLineColor : "#d0d0d0" };
 	}
 	const colorHex = Number.parseInt(String(ctx.ui.layerStyle.planeColor).replace(/^#/, ""), 16);
+	const gridHex = Number.parseInt(String(ctx.ui.layerStyle.gridLineColor ?? "#d0d0d0").replace(/^#/, ""), 16);
 	return {
 		planeColor : Number.isFinite(colorHex) ? colorHex : 0x404040,
 		planeOpacity : clamp01(Number(ctx.ui.layerStyle.planeOpacity ?? 1)),
+		gridLineColor : Number.isFinite(gridHex) ? gridHex : 0xd0d0d0,
 	};
 }
 
 function syncLayerStyleControls() {
-	if (!layerColorInputEl || !layerOpacityInputEl || !layerOpacityValueEl) return;
+	if (!layerColorInputEl || !layerOpacityInputEl || !layerOpacityValueEl || !gridColorInputEl) return;
 	const ctx = scenes.get(activeSceneId);
 	const hasDesign = !!ctx?.design;
 	layerColorInputEl.disabled = !hasDesign;
 	layerOpacityInputEl.disabled = !hasDesign;
+	gridColorInputEl.disabled = !hasDesign;
 
 	if (!hasDesign) {
 		layerColorInputEl.value = "#404040";
 		layerOpacityInputEl.value = "1";
 		layerOpacityValueEl.textContent = "1.00";
+		gridColorInputEl.value = "#d0d0d0";
 		return;
 	}
 	if (!ctx.ui) ctx.ui = {};
-	if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+	if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0, gridLineColor : "#d0d0d0" };
 	layerColorInputEl.value = ctx.ui.layerStyle.planeColor;
 	layerOpacityInputEl.value = String(ctx.ui.layerStyle.planeOpacity);
 	layerOpacityValueEl.textContent = Number(ctx.ui.layerStyle.planeOpacity).toFixed(2);
+	gridColorInputEl.value = ctx.ui.layerStyle.gridLineColor ?? "#d0d0d0";
 }
 
 function ensureGroupUiState(ctx) {
@@ -1309,7 +1315,7 @@ if (layerColorInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0, gridLineColor : "#d0d0d0" };
 		ctx.ui.layerStyle.planeColor = layerColorInputEl.value;
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
@@ -1321,8 +1327,21 @@ if (layerOpacityInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0, gridLineColor : "#d0d0d0" };
 		ctx.ui.layerStyle.planeOpacity = clamp01(Number(layerOpacityInputEl.value));
+		reapplyActiveDesignVisibility();
+		syncLayerStyleControls();
+	});
+}
+
+
+if (gridColorInputEl) {
+	gridColorInputEl.addEventListener("input", () => {
+		const ctx = scenes.get(activeSceneId);
+		if (!ctx?.design) return;
+		if (!ctx.ui) ctx.ui = {};
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 1.0, gridLineColor : "#d0d0d0" };
+		ctx.ui.layerStyle.gridLineColor = gridColorInputEl.value;
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
