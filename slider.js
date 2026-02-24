@@ -25,19 +25,39 @@ export function initZoomSlider({
 	function clamp01(x) {
 		return Math.max(0, Math.min(1, x));
 	}
-	
-	function distanceToT(distance, minD, maxD) {
-		const a = Math.log(minD);
-		const b = Math.log(maxD);
-		const v = (Math.log(distance) - a) / (b - a);
-		return 1 - clamp01(v);
+
+	function toLogSafe(x) {
+		return Math.max(x, 1e-9);
 	}
-	
+
+	function tFromLogRange(value, minV, maxV) {
+		const a = Math.log(toLogSafe(minV));
+		const b = Math.log(toLogSafe(maxV));
+		const denom = b - a;
+		if (Math.abs(denom) < 1e-12) return 0;
+		return clamp01((Math.log(toLogSafe(value)) - a) / denom);
+	}
+
+	function tToLogRange(t, minV, maxV) {
+		const a = Math.log(toLogSafe(minV));
+		const b = Math.log(toLogSafe(maxV));
+		return Math.exp(a + (b - a) * clamp01(t));
+	}
+
+	function distanceToT(distance, minD, maxD) {
+		return 1 - tFromLogRange(distance, minD, maxD);
+	}
+
 	function tToDistance(t, minD, maxD) {
-		const a = Math.log(minD);
-		const b = Math.log(maxD);
-		const v = 1 - clamp01(t);
-		return Math.exp(a + (b - a) * v);
+		return tToLogRange(1 - t, minD, maxD);
+	}
+
+	function zoomToT(zoom, minZ, maxZ) {
+		return tFromLogRange(zoom, minZ, maxZ);
+	}
+
+	function tToZoom(t, minZ, maxZ) {
+		return tToLogRange(t, minZ, maxZ);
 	}
 	
 	/* 3. 슬라이더와 카메라 배율 동기화 */
@@ -55,7 +75,7 @@ export function initZoomSlider({
 			const zMin = ctl.minZoom ?? 0.1;
 			const zMax = ctl.maxZoom ?? 10.0;
 			
-			const t = (z - zMin) / (zMax - zMin);
+			const t = zoomToT(z, zMin, zMax);
 			zoomSlider.value = Math.round(clamp01(t) * 1000);
 			zoomValue.textContent = `x ${z.toFixed(2)}`;
 		}
@@ -83,7 +103,7 @@ export function initZoomSlider({
 		if (cam.isOrthographicCamera) {
 			const zMin = ctl.minZoom ?? 0.1;
 			const zMax = ctl.maxZoom ?? 10.0;
-			cam.zoom = zMin + (zMax - zMin) * t;
+			cam.zoom = tToZoom(t, zMin, zMax);
 			cam.updateProjectionMatrix();
 			ctl.update();
 		}
