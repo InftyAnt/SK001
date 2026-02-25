@@ -1,0 +1,108 @@
+# DESIGN-FMT v1 (Footprint A Power 기반 예시)
+DESIGN
+nlayer : 2
+nx : 308
+ny : 161
+dx : 35
+dy : 55
+layerGap : 40
+bumpRadius : 12
+tsvRadius : 14
+viaRadius : 8
+META
+designName : "FootprintA_Power_Example"
+source : "JESD271-4_HBM4_Ballout_footprint_filtered.xlsx / Footprint A(Power)"
+note : "Power bump 배치를 따르되, TSV는 예시용으로 자유 배치"
+ENDMETA
+ENDDESIGN
+
+GROUP G_PWR
+name : "Power"
+color : "#FF5555"
+state : on
+
+NET N_VSS_0
+name : "VSS_path_0"
+enabled : 1
+bendCount : 4
+start : bump 8 0 0
+end : bump 20 0 0
+PATH
+grid 9 1 0
+grid 12 1 0
+via 12 1 1 kind=pwr
+grid 15 1 1
+grid 18 0 1
+via 18 0 0 kind=pwr
+grid 19 0 0
+ENDPATH
+VIAS
+via 12 1 1 kind=pwr
+via 18 0 0 kind=pwr
+ENDVIAS
+ENDNET
+
+NET N_VDDC_0
+name : "VDDC_path_0"
+enabled : 1
+bendCount : 3
+start : bump 12 0 0
+end : bump 18 2 0
+PATH
+grid 13 0 0
+via 13 0 1 kind=pwr
+grid 14 1 1
+grid 15 2 1
+via 15 2 0 kind=pwr
+grid 16 2 0
+grid 17 2 0
+ENDPATH
+VIAS
+via 13 0 1 kind=pwr
+via 15 2 0 kind=pwr
+ENDVIAS
+ENDNET
+
+NET N_VDDQ_0
+name : "VDDQ_path_0"
+enabled : 1
+bendCount : 2
+start : bump 6 2 0
+end : bump 23 3 0
+PATH
+grid 7 3 0
+grid 10 3 0
+via 10 3 1 kind=pwr
+grid 14 3 1
+grid 18 3 1
+grid 22 3 1
+via 22 3 0 kind=pwr
+ENDPATH
+VIAS
+via 10 3 1 kind=pwr
+via 22 3 0 kind=pwr
+ENDVIAS
+ENDNET
+
+NET N_VPP_0
+name : "VPP_path_0"
+enabled : 1
+bendCount : 4
+start : bump 3 5 0
+end : bump 23 5 0
+PATH
+grid 4 6 0
+via 4 6 1 kind=pwr
+tsv 8 6 1 kind=free
+grid 14 6 1
+grid 20 5 1
+via 20 5 0 kind=pwr
+grid 22 5 0
+ENDPATH
+VIAS
+via 4 6 1 kind=pwr
+via 20 5 0 kind=pwr
+ENDVIAS
+ENDNET
+
+ENDGROUP
