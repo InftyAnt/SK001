@@ -148,6 +148,14 @@
 			<button class = "dock-btn" data-tab = "zoom" title = "Zoom" aria-label = "Zoom">
 				<span class = "dock-icon">🔍</span>
 			</button>
+
+			<button class = "dock-btn" data-tab = "camera" title = "Camera" aria-label = "Camera">
+				<span class = "dock-icon">📷</span>
+			</button>
+
+			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
+				<span class = "dock-icon">⚙️</span>
+			</button>
 		</div>
 		
 		<div class = "panel-clip">
@@ -173,6 +181,55 @@
 							
 							<input id = "zoomSlider" type = "range" min = "0" max = "1000" value = "500" />
 							
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "camera" hidden>
+						<div class = "section-title">
+							Camera
+						</div>
+
+						<div class = "section-body">
+							<div id = "cameraButtons" class = "camera-list" aria-label = "카메라 목록">
+							</div>
+							<div class = "camera-hint">
+								Main 또는 Layer Top 카메라를 선택할 수 있습니다.
+							</div>
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "settings" hidden>
+						<div class = "section-title">
+							Settings
+						</div>
+
+						<div class = "section-body">
+							<div class = "settings-card">
+								<label class = "settings-row">
+									<input id = "mainAutoRotateZ" type = "checkbox" />
+									<span>Main Auto Rotate (Z)</span>
+								</label>
+							</div>
+
+							<div class = "settings-card">
+								<div class = "settings-title">Main Axis</div>
+								<div class = "settings-grid">
+									<label class = "settings-row"><input id = "axisMainAll" type = "checkbox" /><span>All</span></label>
+									<label class = "settings-row"><input id = "axisMainX" type = "checkbox" /><span>X</span></label>
+									<label class = "settings-row"><input id = "axisMainY" type = "checkbox" /><span>Y</span></label>
+									<label class = "settings-row"><input id = "axisMainZ" type = "checkbox" /><span>Z</span></label>
+								</div>
+							</div>
+
+							<div class = "settings-card">
+								<div class = "settings-title">Top Axis</div>
+								<div class = "settings-grid">
+									<label class = "settings-row"><input id = "axisTopAll" type = "checkbox" /><span>All</span></label>
+									<label class = "settings-row"><input id = "axisTopX" type = "checkbox" /><span>X</span></label>
+									<label class = "settings-row"><input id = "axisTopY" type = "checkbox" /><span>Y</span></label>
+									<label class = "settings-row"><input id = "axisTopZ" type = "checkbox" /><span>Z</span></label>
+								</div>
+							</div>
 						</div>
 					</section>
 				</div>
