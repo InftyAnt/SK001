@@ -39,7 +39,7 @@ function removeOldDesignRoot(scene) {
  */
 export function applyDesignToScene(scene, design, opts = {}) {
 	removeOldDesignRoot(scene);
-	
+
 	// 기본 옵션
 	const layerGap = opts.layerGap ?? design.layerGap;
 
@@ -53,7 +53,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const planeOpacity = opts.planeOpacity ?? 1.0;
 	const planeColor = opts.planeColor ?? 0x404040;
 	const zLift = opts.zLift ?? (layerGap * 0.005);
-	
+
 	// bump/tsv/via 시각화 옵션
 	const bumpRadius = opts.bumpRadius ?? design.bumpRadius ?? (Math.min(design.dx, design.dy) * 0.18);
 	const tsvRadius = opts.tsvRadius ?? design.tsvRadius ?? (Math.min(design.dx, design.dy) * 0.24);
@@ -66,7 +66,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 
 	// z-fighting 방지(평면보다 살짝 띄우기)
 	const diskZ = opts.diskZ ?? Math.max(zLift * 4, layerGap * 0.002);
-	
+
 	const viaRingInnerRatio = opts.viaRingInnerRatio ?? 0.65;
 	const viaRingSegments = opts.viaRingSegments ?? 48;
 	const viaRingZ = opts.viaRingZ ?? (diskZ + zLift);
@@ -78,7 +78,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 
 	// net 노드를 그리드보다 위에 보이게 살짝 더 띄우는 값
 	const netNodeZ = opts.netNodeZ ?? Math.max(zLift * 3, gridRadius * 0.20);
-	
+
 	// 그리드 중앙 정렬: (0..nx-1, 0..ny-1) -> 원점 기준
 	const x0 = (design.nx - 1) * design.dx * 0.5;
 	const y0 = (design.ny - 1) * design.dy * 0.5;
@@ -99,7 +99,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	root.name = "designRoot";
 	scene.add(root);
 	scene.userData.designRoot = root;
-	
+
 	// root 생성 직후에 추가
 	const layerGroups = [];
 	for (let L = 0; L < design.nlayer; L++) {
@@ -113,13 +113,15 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const viaGroup = new THREE.Group();
 	viaGroup.name = "viaGroup";
 	root.add(viaGroup);
-	
+
 	const viaRings = [];
 	root.userData.viaRings = viaRings;
 	const gridLineMeshes = [];
 	const planeMeshes = [];
+	const componentNetIndex = new Map();
 	root.userData.gridLineMeshes = gridLineMeshes;
 	root.userData.planeMeshes = planeMeshes;
+	root.userData.componentNetIndex = componentNetIndex;
 	root.userData.gridPitch = Math.min(design.dx, design.dy);
 
 	// 격리 토글 함수(외부에서 main.js가 호출)
@@ -127,7 +129,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	root.userData.viaGroup = viaGroup;
 	root.userData.setIsolatedLayer = (layerOrNull) => {
 		const iso = (layerOrNull === null || layerOrNull === undefined) ? null : (layerOrNull | 0);
-		
+
 		for (const r of viaRings) r.visible = (iso !== null);
 
 		for (let L = 0; L < layerGroups.length; L++) {
@@ -170,7 +172,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		layerGroups[L].add(plane);
 		planeMeshes.push(plane);
 	}
-	
+
 	// =========================
 	// 1.5) 그리드 선 (레이어별 LineSegments)
 	// =========================
@@ -312,7 +314,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			flush(curL, seg);
 		}
 	}
-	
+
 	// =========================
 	// 4) bump / tsv : 디스크(원), via : 원통
 	// =========================
@@ -337,7 +339,19 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const tsvByColor = new Map();	// tsv disks
 	const viaByColor = new Map();	// via cylinders (segments)
 
-	function pushUnique(map, colorStr, key, payload) {
+
+	function addComponentNet(key, nid) {
+		if (!key || nid === undefined || nid === null) return;
+		const sid = String(nid);
+		let set = componentNetIndex.get(key);
+		if (!set) {
+			set = new Set();
+			componentNetIndex.set(key, set);
+		}
+		set.add(sid);
+	}
+
+function pushUnique(map, colorStr, key, payload) {
 		let obj = map.get(colorStr);
 		if (!obj) {
 			obj = { set : new Set(), arr : [] };
@@ -363,11 +377,15 @@ export function applyDesignToScene(scene, design, opts = {}) {
 
 				// bump / tsv : 디스크
 				if (cur.type === "bump") {
-					pushUnique(bumpByColor, c, nodeKey(cur), cur);
+					const k = nodeKey(cur);
+					pushUnique(bumpByColor, c, k, cur);
+					addComponentNet(`bump:${k}`, n.nid);
 					continue;
 				}
 				if (cur.type === "tsv") {
-					pushUnique(tsvByColor, c, nodeKey(cur), cur);
+					const k = nodeKey(cur);
+					pushUnique(tsvByColor, c, k, cur);
+					addComponentNet(`tsv:${k}`, n.nid);
 					continue;
 				}
 
@@ -390,12 +408,16 @@ export function applyDesignToScene(scene, design, opts = {}) {
 						continue; // 레이어 변화가 없는 via면 스킵
 					}
 
-					pushUnique(viaByColor, c, viaKey(cur.x, cur.y, a, b), {
+					const vk = viaKey(cur.x, cur.y, a, b);
+					pushUnique(viaByColor, c, vk, {
 						x : cur.x,
 						y : cur.y,
 						a,
 						b,
 					});
+					addComponentNet(vk, n.nid);
+					addComponentNet(`viaRing:${a}:${cur.x}:${cur.y}`, n.nid);
+					addComponentNet(`viaRing:${b}:${cur.x}:${cur.y}`, n.nid);
 				}
 			}
 		}
@@ -446,6 +468,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			inst.instanceMatrix.needsUpdate = true;
 			inst.name = `bumpDisks:L${L}:${colorStr}`;
 			inst.renderOrder = 30;
+			inst.userData.pickKeys = nodes.map((node) => `bump:${nodeKey(node)}`);
 			layerGroups[L].add(inst);
 		}
 	}
@@ -495,6 +518,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			inst.instanceMatrix.needsUpdate = true;
 			inst.name = `tsvDisks:L${L}:${colorStr}`;
 			inst.renderOrder = 30;
+			inst.userData.pickKeys = nodes.map((node) => `tsv:${nodeKey(node)}`);
 			layerGroups[L].add(inst);
 		}
 	}
@@ -557,9 +581,10 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		inst.instanceMatrix.needsUpdate = true;
 		inst.name = `viaCylinders:${colorStr}`;
 		inst.renderOrder = 25;
+		inst.userData.pickKeys = vias.map((v) => viaKey(v.x, v.y, v.a, v.b));
 		viaGroup.add(inst);
 	}
-	
+
 	// 4-5) via 위치 표시용 도넛 링(레이어별, TopView에서 보이게 layerGroups에 추가)
 	for (const [colorStr, pack] of viaByColor.entries()) {
 		const all = pack.arr;
@@ -626,14 +651,15 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			inst.instanceMatrix.needsUpdate = true;
 			inst.name = `viaRings:L${L}:${colorStr}`;
 			inst.renderOrder = 28;
-			
+			inst.userData.pickKeys = pts.map((pt) => `viaRing:${L}:${pt.x}:${pt.y}`);
+
 			viaRings.push(inst);
 
 			// 레이어 격리 시 해당 레이어에서만 보이게
 			layerGroups[L].add(inst);
 		}
 	}
-	
+
 	// =========================
 	// 5) net 노드 구체 (각 net의 색으로 grid 노드를 덧칠)
 	// =========================

@@ -653,6 +653,8 @@ const tmpWorldA = new THREE.Vector3();
 const tmpWorldB = new THREE.Vector3();
 const tmpScreenA = new THREE.Vector2();
 const tmpScreenB = new THREE.Vector2();
+const pickRaycaster = new THREE.Raycaster();
+const pickNdc = new THREE.Vector2();
 
 function clamp01(v) {
 	return Math.min(1, Math.max(0, v));
@@ -802,11 +804,12 @@ function worldToScreen(vec3, cam, rect, outVec2) {
 	outVec2.y = ((1 - outVec2.y) * 0.5) * rect.height;
 }
 
-function findNearestNetNidAtClientPoint(clientX, clientY) {
+function findNearestNetNidAtClientPoint(clientX, clientY, candidateNids = null) {
 	if (!activeScene || !camera) return null;
 	const rect = renderer.domElement.getBoundingClientRect();
 	const px = clientX - rect.left;
 	const py = clientY - rect.top;
+	const filter = (candidateNids && candidateNids.size > 0) ? candidateNids : null;
 
 	let bestNid = null;
 	let bestDistSq = Number.POSITIVE_INFINITY;
@@ -815,6 +818,7 @@ function findNearestNetNidAtClientPoint(clientX, clientY) {
 		if (!obj?.isLine || !obj.visible) return;
 		const nid = parseNidFromLineName(obj.name);
 		if (!nid) return;
+		if (filter && !filter.has(String(nid))) return;
 
 		const pos = obj.geometry?.attributes?.position;
 		if (!pos || pos.count < 2) return;
@@ -829,12 +833,51 @@ function findNearestNetNidAtClientPoint(clientX, clientY) {
 			const d2 = distanceToSegmentSq(px, py, tmpScreenA.x, tmpScreenA.y, tmpScreenB.x, tmpScreenB.y);
 			if (d2 < bestDistSq) {
 				bestDistSq = d2;
-				bestNid = nid;
+				bestNid = String(nid);
 			}
 		}
 	});
 
 	return bestNid;
+}
+
+function resolveHitCandidateNids(hit) {
+	if (!hit?.object) return null;
+	if (hit.object.isLine) {
+		const nid = parseNidFromLineName(hit.object.name);
+		return nid ? new Set([String(nid)]) : null;
+	}
+	const keys = hit.object?.userData?.pickKeys;
+	if (!Array.isArray(keys)) return null;
+	const iid = hit.instanceId;
+	if (!Number.isInteger(iid) || iid < 0 || iid >= keys.length) return null;
+	const key = keys[iid];
+	const root = activeScene?.userData?.designRoot;
+	const index = root?.userData?.componentNetIndex;
+	if (!(index instanceof Map)) return null;
+	const nids = index.get(key);
+	if (!(nids instanceof Set) || nids.size === 0) return null;
+	return new Set([...nids].map((v) => String(v)));
+}
+
+function pickNearestNetFromClick(clientX, clientY) {
+	if (!activeScene || !camera) return null;
+	const rect = renderer.domElement.getBoundingClientRect();
+	pickNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+	pickNdc.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+	pickRaycaster.params.Line.threshold = 0.18;
+	pickRaycaster.setFromCamera(pickNdc, camera);
+	const hits = pickRaycaster.intersectObject(activeScene, true);
+
+	for (const hit of hits) {
+		const nids = resolveHitCandidateNids(hit);
+		if (!nids || nids.size === 0) continue;
+		if (nids.size === 1) return [...nids][0];
+		const nearest = findNearestNetNidAtClientPoint(clientX, clientY, nids);
+		if (nearest) return nearest;
+	}
+
+	return findNearestNetNidAtClientPoint(clientX, clientY);
 }
 
 function getNetInfoByNid(ctx, nid) {
@@ -859,7 +902,7 @@ function getNetInfoByNid(ctx, nid) {
 }
 
 function selectNearestNetAtClientPoint(clientX, clientY) {
-	const nid = findNearestNetNidAtClientPoint(clientX, clientY);
+	const nid = pickNearestNetFromClick(clientX, clientY);
 	if (!nid) return;
 	selectedNetNid = nid;
 	applyNetHighlight(nid);
