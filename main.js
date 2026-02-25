@@ -48,6 +48,7 @@ const LEGACY_PIXEL_RATIO_CAP = 2.0;
 const RENDER_PIXEL_RATIO_CAP = 1.25; // 렌더 해상도를 낮춰 카메라 이동 시 FPS 확보
 const FPS_BOOST_RATIO_EST = (LEGACY_PIXEL_RATIO_CAP / RENDER_PIXEL_RATIO_CAP) ** 2;
 const CAMERA_SPEED_COMPENSATION = 1 / FPS_BOOST_RATIO_EST;
+const TOPVIEW_MOVE_SPEED_MULTIPLIER = 1.5;
 
 const renderer = new THREE.WebGLRenderer({
 	antialias : true,
@@ -75,7 +76,7 @@ mainControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
 mainControls.autoRotateSpeed *= CAMERA_SPEED_COMPENSATION;
 
 topviewControls.rotateSpeed *= CAMERA_SPEED_COMPENSATION;
-topviewControls.panSpeed *= CAMERA_SPEED_COMPENSATION;
+topviewControls.panSpeed *= CAMERA_SPEED_COMPENSATION * TOPVIEW_MOVE_SPEED_MULTIPLIER;
 topviewControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
 topviewControls.autoRotateSpeed *= CAMERA_SPEED_COMPENSATION;
 
@@ -146,7 +147,7 @@ let axisVisibleTop = { x : true, y : true, z : false };
 let isMainControlsInteracting = false;
 
 
-const TOPVIEW_PAN_PIXELS_PER_SEC = 500 * CAMERA_SPEED_COMPENSATION;
+const TOPVIEW_PAN_PIXELS_PER_SEC = 500 * CAMERA_SPEED_COMPENSATION * TOPVIEW_MOVE_SPEED_MULTIPLIER;
 const TOPVIEW_MIN_GRID_PIXEL_SPACING = 6;
 const topviewPanPressed = new Set();
 
