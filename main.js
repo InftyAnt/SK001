@@ -36,7 +36,7 @@ const topviewcamera = new THREE.OrthographicCamera(
 	frustumSize / 2, // 위쪽 끝
 	-frustumSize / 2, // 아래쪽 끝
 	0.1, // near
-	1000 // far
+	100000 // far (대형 grid에서도 topview 클리핑 방지)
 );
 topviewcamera.position.set(2, 2, 2);
 
