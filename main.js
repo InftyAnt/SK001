@@ -540,6 +540,7 @@ function initScenes() {
 	};
 	scenes.set(ctx.id, ctx);
 	syncAxisLengthForCtx(ctx);
+	syncCameraClipPlanesForCtx(ctx);
 	activeScene = ctx.scene;
 	
 	// main 카메라 초기 상태를 "M 키"와 동일하게 세팅
@@ -575,6 +576,7 @@ function setActiveSceneById(id) {
 	const next = scenes.get(id);
 	activeScene = next.scene;
 	syncAxisLengthForCtx(next);
+	syncCameraClipPlanesForCtx(next);
 	
 	applyViewState(next.view);
 	
@@ -619,6 +621,7 @@ async function addTextFilesAsScenes(files) {
 		};
 		
 		syncAxisLengthForCtx(ctx);
+		syncCameraClipPlanesForCtx(ctx);
 		scenes.set(id, ctx);
 	}
 	
@@ -722,6 +725,7 @@ function reapplyActiveDesignVisibility() {
 
 	applyDesignToScene(ctx.scene, ctx.design, getDesignRenderOpts(ctx));
 	syncAxisLengthForCtx(ctx);
+	syncCameraClipPlanesForCtx(ctx);
 	applyViewState(preservedView);
 }
 
@@ -1009,6 +1013,9 @@ function onResize() {
 		camera.bottom = -frustumSize / 2;
 		camera.updateProjectionMatrix();
 	}
+
+	const ctx = scenes.get(activeSceneId);
+	if (ctx) syncCameraClipPlanesForCtx(ctx);
 }
 window.addEventListener('resize', onResize);
 
@@ -1028,6 +1035,39 @@ function computeRectRangeForCtx(ctx) {
 	}
 
 	return 10;
+}
+
+function computeLongestBoxEdgeForCtx(ctx) {
+	const design = ctx?.design;
+	if (design) {
+		const w = (design.nx - 1) * design.dx;
+		const h = (design.ny - 1) * design.dy;
+		const layerGap = design.layerGap ?? design.meta?.layerGap ?? (Math.max(design.dx, design.dy) * 2);
+		const z = Math.max(layerGap, (design.nlayer - 1) * layerGap);
+		return Math.max(1, w, h, z);
+	}
+
+	const root = ctx?.scene?.userData?.designRoot;
+	if (root) {
+		const box = new THREE.Box3().setFromObject(root);
+		if (box.isEmpty()) return 10;
+		const size = box.getSize(new THREE.Vector3());
+		return Math.max(1, size.x, size.y, size.z);
+	}
+
+	return 10;
+}
+
+function syncCameraClipPlanesForCtx(ctx) {
+	const longest = computeLongestBoxEdgeForCtx(ctx);
+	const near = Math.max(0.01, longest / 10000);
+	const far = Math.max(near * 10, longest * 10);
+
+	for (const cam of [maincamera, topviewcamera]) {
+		cam.near = near;
+		cam.far = far;
+		cam.updateProjectionMatrix();
+	}
 }
 
 function setAxisLengthFromRectRange(scene, rectRange) {
