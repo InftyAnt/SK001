@@ -1066,6 +1066,12 @@ function makeDefaultScene() {
 	dirLight.position.set(3, 5, 2);
 	s.add(dirLight);
 
+	const infDirLight = new THREE.DirectionalLight(0xffffff, 0.35);
+	// DirectionalLight는 position -> target 방향으로 빛을 비추므로
+	// (1,1,1)에서 원점(기본 target)으로 향하면 방향은 (-1,-1,-1)와 같습니다.
+	infDirLight.position.set(1, 1, 1);
+	s.add(infDirLight);
+
 	return s;
 }
 
@@ -1091,6 +1097,12 @@ function createBaseScene() {
 	const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
 	dirLight.position.set(3, 5, 2);
 	s.add(dirLight);
+
+	const infDirLight = new THREE.DirectionalLight(0xffffff, 0.35);
+	// DirectionalLight는 position -> target 방향으로 빛을 비추므로
+	// (1,1,1)에서 원점(기본 target)으로 향하면 방향은 (-1,-1,-1)와 같습니다.
+	infDirLight.position.set(1, 1, 1);
+	s.add(infDirLight);
 	
 	return s;
 }
