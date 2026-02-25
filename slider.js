@@ -60,7 +60,7 @@ export function initZoomSlider({
 		return tToLogRange(t, minZ, maxZ);
 	}
 
-	const TOPVIEW_ZOOM_DISPLAY_SCALE = 100;
+	const TOPVIEW_ZOOM_DISPLAY_BASE = 1;
 	
 	/* 3. 슬라이더와 카메라 배율 동기화 */
 	let isProgrammaticUpdate = false;
@@ -79,8 +79,8 @@ export function initZoomSlider({
 			
 			const t = zoomToT(z, zMin, zMax);
 			zoomSlider.value = Math.round(clamp01(t) * 1000);
-			const displayZoom = z * TOPVIEW_ZOOM_DISPLAY_SCALE;
-			zoomValue.textContent = `x ${displayZoom.toFixed(1)}`;
+			const displayZoom = TOPVIEW_ZOOM_DISPLAY_BASE * (z / Math.max(zMin, 1e-9));
+			zoomValue.textContent = `x ${displayZoom.toFixed(2)}`;
 		}
 		else if (cam.isPerspectiveCamera) {
 			const d = ctl.getDistance();

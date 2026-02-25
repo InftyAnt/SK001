@@ -34,6 +34,7 @@ function removeOldDesignRoot(scene) {
  * @param {number} [opts.layerGap]    // 레이어 간격 (world unit)
  * @param {number} [opts.pointSize]   // 그리드 점 크기
  * @param {number} [opts.planeOpacity]
+ * @param {number} [opts.gridLineOpacity]
  * @param {number} [opts.zLift]       // 선/점이 평면과 z-fighting 안 나도록 살짝 올리는 값
  */
 export function applyDesignToScene(scene, design, opts = {}) {
@@ -171,6 +172,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const planeLuma = (0.2126 * pc.r) + (0.7152 * pc.g) + (0.0722 * pc.b);
 	const autoGridLineColor = (planeLuma > 0.55) ? 0x1f1f1f : 0xd0d0d0;
 	const gridLineColor = opts.gridLineColor ?? autoGridLineColor; // 레이어 색 대비 자동 보정
+	const gridLineOpacity = opts.gridLineOpacity ?? 0.9;
 	const gridLineZ = opts.gridLineZ ?? (zLift * 0.25);           // plane 위로 살짝
 
 	function buildGridLinesGeometry() {
@@ -201,7 +203,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const gridLineMat = new THREE.LineBasicMaterial({
 	color: gridLineColor,
 	transparent: true,
-	opacity: 0.9,
+	opacity: gridLineOpacity,
 	depthTest: true,   // 윗 레이어(불투명) 뒤의 격자는 가려지도록 유지
 	depthWrite: false,
 	});

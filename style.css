@@ -407,6 +407,12 @@ canvas {
 	gap : 8px;
 }
 
+.layer-style-title {
+	font-size : 12px;
+	font-weight : 700;
+	opacity : 0.9;
+}
+
 .layer-style-row span:first-child {
 	min-width : 72px;
 	font-size : 12px;
@@ -422,7 +428,8 @@ canvas {
 	background : transparent;
 }
 
-#layerOpacityInput {
+#layerOpacityInput,
+#gridOpacityInput {
 	flex : 1;
 }
 

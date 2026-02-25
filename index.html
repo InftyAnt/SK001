@@ -49,8 +49,9 @@
 						
 						<div class = "section-body">
 							<div class = "layer-style">
+								<div class = "layer-style-title">Layer Style</div>
 								<label class = "layer-style-row">
-									<span>Layer Color</span>
+									<span>Color</span>
 									<input id = "layerColorInput" type = "color" value = "#404040" />
 								</label>
 								<label class = "layer-style-row">
@@ -58,9 +59,17 @@
 									<input id = "layerOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "1" />
 									<span id = "layerOpacityValue" class = "layer-style-value">1.00</span>
 								</label>
+							</div>
+							<div class = "layer-style">
+								<div class = "layer-style-title">Grid Style</div>
 								<label class = "layer-style-row">
-									<span>Grid Color</span>
+									<span>Color</span>
 									<input id = "gridColorInput" type = "color" value = "#575757" />
+								</label>
+								<label class = "layer-style-row">
+									<span>Opacity</span>
+									<input id = "gridOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "0.90" />
+									<span id = "gridOpacityValue" class = "layer-style-value">0.90</span>
 								</label>
 							</div>
 							<div id = "groupTree" class = "group-tree" aria-label = "Group and net visibility tree">
