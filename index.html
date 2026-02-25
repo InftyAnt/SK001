@@ -44,7 +44,7 @@
 					
 					<section class = "tab-content" data-tab = "layers" hidden>
 						<div class = "section-title">
-							Groups / Nets
+							Layer / Grid Style
 						</div>
 						
 						<div class = "section-body">
@@ -56,8 +56,8 @@
 								</label>
 								<label class = "layer-style-row">
 									<span>Opacity</span>
-									<input id = "layerOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "1" />
-									<span id = "layerOpacityValue" class = "layer-style-value">1.00</span>
+									<input id = "layerOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "0.00" />
+									<span id = "layerOpacityValue" class = "layer-style-value">0.00</span>
 								</label>
 							</div>
 							<div class = "layer-style">
@@ -68,10 +68,22 @@
 								</label>
 								<label class = "layer-style-row">
 									<span>Opacity</span>
-									<input id = "gridOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "0.90" />
-									<span id = "gridOpacityValue" class = "layer-style-value">0.90</span>
+									<input id = "gridOpacityInput" type = "range" min = "0" max = "1" step = "0.01" value = "0.14" />
+									<span id = "gridOpacityValue" class = "layer-style-value">0.14</span>
 								</label>
 							</div>
+							<div class = "help-text">
+								레이어/그리드 색상과 투명도를 조절합니다.
+							</div>
+						</div>
+					</section>
+					
+					<section class = "tab-content" data-tab = "nets" hidden>
+						<div class = "section-title">
+							Groups / Nets
+						</div>
+						
+						<div class = "section-body">
 							<div id = "groupTree" class = "group-tree" aria-label = "Group and net visibility tree">
 							</div>
 							<div class = "help-text">
@@ -151,20 +163,24 @@
 				≡
 			</button>
 			
-			<button class = "dock-btn" data-tab = "info" title = "Info">
-				i
+			<button class = "dock-btn" data-tab = "info" title = "Info" aria-label = "Info">
+				<span class = "dock-icon">ⓘ</span>
 			</button>
 			
-			<button class = "dock-btn" data-tab = "layers" title = "Layers">
-				L
+			<button class = "dock-btn" data-tab = "layers" title = "Styles" aria-label = "Styles">
+				<span class = "dock-icon">🎨</span>
+			</button>
+
+			<button class = "dock-btn" data-tab = "nets" title = "Nets" aria-label = "Nets">
+				<span class = "dock-icon">🧩</span>
 			</button>
 			
-			<button class = "dock-btn" data-tab = "data" title = "Data">
-				D
+			<button class = "dock-btn" data-tab = "data" title = "Data" aria-label = "Data">
+				<span class = "dock-icon">📂</span>
 			</button>
 			
-			<button class = "dock-btn" data-tab = "camera" title = "Camera">
-				C
+			<button class = "dock-btn" data-tab = "camera" title = "Camera" aria-label = "Camera">
+				<span class = "dock-icon">📷</span>
 			</button>
 		</div>
 	</div>
@@ -175,12 +191,12 @@
 				≡
 			</button>
 			
-			<button class = "dock-btn" data-tab = "zoom" title = "Zoom">
-				Z
+			<button class = "dock-btn" data-tab = "zoom" title = "Zoom" aria-label = "Zoom">
+				<span class = "dock-icon">🔍</span>
 			</button>
 			
-			<button class = "dock-btn" data-tab = "settings" title = "Settings">
-				⚙
+			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
+				<span class = "dock-icon">⚙</span>
 			</button>
 		</div>
 		
