@@ -32,15 +32,6 @@
 				</div>
 				
 				<div class = "panel-body">
-					<section class = "tab-content" data-tab = "info">
-						<div class = "section-title">
-							Info
-						</div>
-						
-						<div class = "section-body">
-							왼쪽 패널의 기본 탭입니다.
-						</div>
-					</section>
 					
 					<section class = "tab-content" data-tab = "layers" hidden>
 						<div class = "section-title">
@@ -72,9 +63,6 @@
 									<span id = "gridOpacityValue" class = "layer-style-value">0.32</span>
 								</label>
 							</div>
-							<div class = "help-text">
-								레이어/그리드 색상과 투명도를 조절합니다.
-							</div>
 						</div>
 					</section>
 					
@@ -85,9 +73,6 @@
 						
 						<div class = "section-body">
 							<div id = "groupTree" class = "group-tree" aria-label = "Group and net visibility tree">
-							</div>
-							<div class = "help-text">
-								그룹/넷 체크박스로 경로 표시를 켜고 끌 수 있습니다.
 							</div>
 						</div>
 					</section>
@@ -103,9 +88,6 @@
 									텍스트 파일 추가
 								</button>
 								
-								<span class = "muted" style = "align-self : center;">
-									드롭도 가능합니다
-								</span>
 							</div>
 							
 							<input
@@ -121,9 +103,6 @@
 									여기에 텍스트 파일을 드롭
 								</div>
 								
-								<div class = "dropzone-sub">
-									업로드한 파일마다 별도의 Scene이 생성됩니다
-								</div>
 							</div>
 							
 							<div class = "scene-list-head">
@@ -131,27 +110,10 @@
 									Scenes
 								</span>
 								
-								<span class = "muted">
-									(클릭하여 전환)
-								</span>
 							</div>
 							
 							<ul id = "sceneList" class = "scene-list">
 							</ul>
-						</div>
-					</section>
-					
-					<section class = "tab-content" data-tab = "camera" hidden>
-						<div class = "section-title">
-							Camera
-						</div>
-
-						<div class = "section-body">
-							<div id = "cameraButtons" class = "camera-list">
-							</div>
-							<div class = "muted camera-hint">
-								디자인이 로드되면 레이어별 TopView 버튼이 생성됩니다.
-							</div>
 						</div>
 					</section>
 				</div>
@@ -161,10 +123,6 @@
 		<div class = "dock" role = "tablist" aria-label = "Left dock">
 			<button class = "dock-btn toggle" data-action = "toggle" title = "접기/펴기" aria-label = "접기/펴기">
 				≡
-			</button>
-			
-			<button class = "dock-btn" data-tab = "info" title = "Info" aria-label = "Info">
-				<span class = "dock-icon">ⓘ</span>
 			</button>
 			
 			<button class = "dock-btn" data-tab = "layers" title = "Styles" aria-label = "Styles">
@@ -178,10 +136,6 @@
 			<button class = "dock-btn" data-tab = "data" title = "Data" aria-label = "Data">
 				<span class = "dock-icon">📂</span>
 			</button>
-			
-			<button class = "dock-btn" data-tab = "camera" title = "Camera" aria-label = "Camera">
-				<span class = "dock-icon">📷</span>
-			</button>
 		</div>
 	</div>
 	
@@ -193,10 +147,6 @@
 			
 			<button class = "dock-btn" data-tab = "zoom" title = "Zoom" aria-label = "Zoom">
 				<span class = "dock-icon">🔍</span>
-			</button>
-			
-			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
-				<span class = "dock-icon">⚙</span>
 			</button>
 		</div>
 		
@@ -223,51 +173,6 @@
 							
 							<input id = "zoomSlider" type = "range" min = "0" max = "1000" value = "500" />
 							
-							<div class = "hint">
-								휠/핀치/슬라이더 모두 동기화
-							</div>
-						</div>
-					</section>
-					
-					<section class = "tab-content" data-tab = "settings" hidden>
-						<div class = "section-title">
-							Settings
-						</div>
-						
-						<div class = "section-body">
-							<label class = "toggle-row">
-								<input id = "mainAutoRotateZ" type = "checkbox" />
-								
-								<span>
-									메인 카메라 Z축 자동 회전
-								</span>
-							</label>
-							
-							<div class="help-text">
-								체크하면 Main(Persp) 카메라가 Z축(위쪽 축) 기준으로 계속 회전합니다.
-							</div>
-
-							<div class = "section-title" style = "margin-top : 12px;">Axis Visibility</div>
-
-							<label class = "toggle-row">
-								<input id = "axisMainAll" type = "checkbox" checked />
-								<span>Main 전체 축 표시</span>
-							</label>
-							<div class = "axis-subrow">
-								<label><input id = "axisMainX" type = "checkbox" checked /> X</label>
-								<label><input id = "axisMainY" type = "checkbox" checked /> Y</label>
-								<label><input id = "axisMainZ" type = "checkbox" checked /> Z</label>
-							</div>
-
-							<label class = "toggle-row">
-								<input id = "axisTopAll" type = "checkbox" />
-								<span>TopView 전체 축 표시</span>
-							</label>
-							<div class = "axis-subrow">
-								<label><input id = "axisTopX" type = "checkbox" checked /> X</label>
-								<label><input id = "axisTopY" type = "checkbox" checked /> Y</label>
-								<label><input id = "axisTopZ" type = "checkbox" /> Z</label>
-							</div>
 						</div>
 					</section>
 				</div>

@@ -299,7 +299,7 @@ bindAxisVisibilityControls();
 
 // 6-E. uipanels.js의 함수 호출
 initSidePanels({
-	left : { defaultCollapsed : true, defaultTab : "info" },
+	left : { defaultCollapsed : true, defaultTab : "data" },
 	right : { defaultCollapsed : false, defaultTab : "zoom" },
 });
 
