@@ -152,7 +152,9 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			opacity : planeOpacity,
 			side : THREE.DoubleSide,
 			depthTest : true,
-			depthWrite : planeOpacity >= 0.999,
+			// opacity 값과 무관하게 레이어 평면은 깊이 버퍼에 기록해야
+			// 중간 레이어가 안정적으로 가려지거나 드러납니다.
+			depthWrite : true,
 			polygonOffset : true,
 			polygonOffsetFactor : 1,
 			polygonOffsetUnits : 1,
