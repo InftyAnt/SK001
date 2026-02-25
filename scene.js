@@ -58,6 +58,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const bumpRadius = opts.bumpRadius ?? design.bumpRadius ?? (Math.min(design.dx, design.dy) * 0.18);
 	const tsvRadius = opts.tsvRadius ?? design.tsvRadius ?? (Math.min(design.dx, design.dy) * 0.24);
 	const viaRadius = opts.viaRadius ?? design.viaRadius ?? (Math.min(design.dx, design.dy) * 0.14);
+	const viaOpacity = opts.viaOpacity ?? 1.0;
 
 	// 매끄러움(세그먼트)
 	const diskSegments = opts.diskSegments ?? 32;			// bump/tsv 원
@@ -513,11 +514,13 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		const geom = new THREE.CylinderGeometry(1, 1, 1, viaSegments, 1, false);
 		geom.rotateX(Math.PI / 2); // 기본(Y축) -> Z축
 
+		const viaOpaque = viaOpacity >= 0.999;
 		const mat = new THREE.MeshBasicMaterial({
 			color : new THREE.Color(colorStr),
-			transparent : true,
-			opacity : 0.95,
-			depthWrite : false,
+			transparent : !viaOpaque,
+			opacity : viaOpacity,
+			depthTest : true,
+			depthWrite : viaOpaque,
 		});
 
 		const inst = new THREE.InstancedMesh(geom, mat, vias.length);
