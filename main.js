@@ -1015,7 +1015,7 @@ function pickNearestNetFromClick(clientX, clientY) {
 		if (nearest) return nearest;
 	}
 
-	return findNearestNetNidAtClientPoint(clientX, clientY);
+	return null;
 }
 
 function getNetInfoByNid(ctx, nid) {
@@ -1803,11 +1803,13 @@ function updateAdaptiveGridVisibility(scene, activeCam) {
 }
 
 /* 11. 애니메이션 */
-const clock = new THREE.Clock();
+let lastFrameTimeMs = performance.now();
 function animate() {
 	requestAnimationFrame(animate);
 	
-	const dt = clock.getDelta();
+	const nowMs = performance.now();
+	const dt = Math.max(0, (nowMs - lastFrameTimeMs) / 1000);
+	lastFrameTimeMs = nowMs;
 	
 	mainControls.autoRotate = false;
 	
@@ -1826,7 +1828,7 @@ function animate() {
 	syncAxisOverlayForCamera(activeScene, activeCam);
 	syncAxisVisibilityForCamera(activeScene, activeCam);
 	updateAdaptiveGridVisibility(activeScene, activeCam);
-	updateNetHighlightBlink(performance.now());
+	updateNetHighlightBlink(nowMs);
 	renderer.render(activeScene, activeCam);
 }
 
