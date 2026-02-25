@@ -375,8 +375,9 @@ function makeInitialViewForCtx(designOrNull) {
 
 		const zCenter = (designOrNull.nlayer - 1) * layerGap * 0.5;
 		const layerHeight = Math.max(layerGap, (designOrNull.nlayer - 1) * layerGap);
+		const L = Math.max(1, w, h, layerHeight);
 		const mainTarget = [0, 0, zCenter];
-		const mainPos = [w, h, layerHeight];
+		const mainPos = [L, L, L];
 		const checkpointDist = Math.hypot(mainPos[0] - mainTarget[0], mainPos[1] - mainTarget[1], mainPos[2] - mainTarget[2]);
 		const requiredMaxDistance = Math.max(200, checkpointDist * 1.2);
 
@@ -1234,9 +1235,10 @@ function computeMKeyMove() {
 		const h = (design.ny - 1) * design.dy;
 		const layerHeight = Math.max(layerGap, (design.nlayer - 1) * layerGap);
 
-		let x = w;
-		let y = h;
-		let z = layerHeight;
+		const L = Math.max(1, w, h, layerHeight);
+		let x = L;
+		let y = L;
+		let z = L;
 
 		// 퇴화 케이스 방지
 		if (Math.abs(x) < 1e-9 && Math.abs(y) < 1e-9 && Math.abs(z) < 1e-9) {
@@ -1263,9 +1265,10 @@ function computeMKeyMove() {
 		const size = box.getSize(new THREE.Vector3());
 		const center = box.getCenter(new THREE.Vector3());
 
-		let x = size.x;
-		let y = size.y;
-		let z = Math.max(size.z, 2);
+		const L = Math.max(2, size.x, size.y, size.z);
+		let x = L;
+		let y = L;
+		let z = L;
 
 		if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
 			x = 2;
