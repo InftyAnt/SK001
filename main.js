@@ -578,7 +578,7 @@ async function addTextFilesAsScenes(files) {
 		let design = null;
 		try {
 			design = parseDesignText(rawText);
-			applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.14 }); // scene.js가 design.layerGap을 쓰면 자동 적용
+			applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 }); // scene.js가 design.layerGap을 쓰면 자동 적용
 		} catch (err) {
 			console.error("[parse/apply failed]", file.name, err);
 			addPlaceholderCube(s, hashColor24(file.name));
@@ -625,10 +625,10 @@ function clamp01(v) {
 }
 
 function getDesignRenderOpts(ctx) {
-	if (!ctx) return { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.14 };
+	if (!ctx) return { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 };
 	if (!ctx.ui) ctx.ui = {};
 	if (!ctx.ui.layerStyle) {
-		ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+		ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 	}
 	const colorHex = Number.parseInt(String(ctx.ui.layerStyle.planeColor).replace(/^#/, ""), 16);
 	const gridHex = Number.parseInt(String(ctx.ui.layerStyle.gridLineColor ?? "#575757").replace(/^#/, ""), 16);
@@ -636,7 +636,7 @@ function getDesignRenderOpts(ctx) {
 		planeColor : Number.isFinite(colorHex) ? colorHex : 0x404040,
 		planeOpacity : clamp01(Number(ctx.ui.layerStyle.planeOpacity ?? 0.0)),
 		gridLineColor : Number.isFinite(gridHex) ? gridHex : 0x575757,
-		gridLineOpacity : clamp01(Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.14)),
+		gridLineOpacity : clamp01(Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.32)),
 	};
 }
 
@@ -654,18 +654,18 @@ function syncLayerStyleControls() {
 		layerOpacityInputEl.value = "0";
 		layerOpacityValueEl.textContent = "0.00";
 		gridColorInputEl.value = "#575757";
-		gridOpacityInputEl.value = "0.14";
-		gridOpacityValueEl.textContent = "0.14";
+		gridOpacityInputEl.value = "0.32";
+		gridOpacityValueEl.textContent = "0.32";
 		return;
 	}
 	if (!ctx.ui) ctx.ui = {};
-	if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+	if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 	layerColorInputEl.value = ctx.ui.layerStyle.planeColor;
 	layerOpacityInputEl.value = String(ctx.ui.layerStyle.planeOpacity);
 	layerOpacityValueEl.textContent = Number(ctx.ui.layerStyle.planeOpacity).toFixed(2);
 	gridColorInputEl.value = ctx.ui.layerStyle.gridLineColor ?? "#575757";
-	gridOpacityInputEl.value = String(ctx.ui.layerStyle.gridLineOpacity ?? 0.14);
-	gridOpacityValueEl.textContent = Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.14).toFixed(2);
+	gridOpacityInputEl.value = String(ctx.ui.layerStyle.gridLineOpacity ?? 0.32);
+	gridOpacityValueEl.textContent = Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.32).toFixed(2);
 }
 
 function ensureGroupUiState(ctx) {
@@ -1428,7 +1428,7 @@ if (layerColorInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeColor = layerColorInputEl.value;
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
@@ -1440,7 +1440,7 @@ if (layerOpacityInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeOpacity = clamp01(Number(layerOpacityInputEl.value));
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
@@ -1453,7 +1453,7 @@ if (gridColorInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineColor = gridColorInputEl.value;
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
@@ -1466,7 +1466,7 @@ if (gridOpacityInputEl) {
 		const ctx = scenes.get(activeSceneId);
 		if (!ctx?.design) return;
 		if (!ctx.ui) ctx.ui = {};
-		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.14 };
+		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineOpacity = clamp01(Number(gridOpacityInputEl.value));
 		reapplyActiveDesignVisibility();
 		syncLayerStyleControls();

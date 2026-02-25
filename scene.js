@@ -172,7 +172,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const planeLuma = (0.2126 * pc.r) + (0.7152 * pc.g) + (0.0722 * pc.b);
 	const autoGridLineColor = (planeLuma > 0.55) ? 0x1f1f1f : 0xd0d0d0;
 	const gridLineColor = opts.gridLineColor ?? autoGridLineColor; // 레이어 색 대비 자동 보정
-	const gridLineOpacity = opts.gridLineOpacity ?? 0.14;
+	const gridLineOpacity = opts.gridLineOpacity ?? 0.32;
 	const gridLineZ = opts.gridLineZ ?? (zLift * 0.25);           // plane 위로 살짝
 
 	function buildGridLinesGeometry() {

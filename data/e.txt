@@ -1,0 +1,32 @@
+# DESIGN-FMT v1 (very large grid, no routing)
+DESIGN
+nlayer : 2
+nx : 3001
+ny : 3001
+dx : 1
+dy : 1
+layerGap : 2.0
+bumpRadius : 0.18
+tsvRadius : 0.25
+viaRadius : 0.12
+META
+designName : "E_no_routing_large_grid"
+author : "codex"
+note : "grid width/height counts exceed 3000, no PATH/VIAS blocks"
+ENDMETA
+ENDDESIGN
+
+GROUP G0
+name : "NoRouting"
+color : "#66CCFF"
+state : on
+
+NET N0
+name : "N0"
+enabled : 1
+bendCount : 0
+start : bump 0 0 0
+end : bump 3000 3000 0
+ENDNET
+
+ENDGROUP
