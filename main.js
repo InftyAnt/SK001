@@ -902,9 +902,9 @@ function applyNetHighlight(nid) {
 
 function updateNetHighlightBlink(nowMs) {
 	if (!selectedNetOverlayGroup || selectedNetOverlayMats.length === 0) return;
-	const t = nowMs * 0.001;
-	const blink = 0.5 + 0.5 * Math.sin(t * Math.PI * 0.8); // 느린 깜빡임(0.4Hz)
-	const opacity = 0.22 + (0.58 * blink);
+	const cycleMs = 1200; // 1.2초 주기(느리게)
+	const phase = (nowMs % cycleMs) / cycleMs;
+	const opacity = (phase < 0.5) ? 1.0 : 0.0; // 완전 on/off 깜빡임
 	for (const mat of selectedNetOverlayMats) {
 		if (!mat) continue;
 		mat.opacity = opacity;
