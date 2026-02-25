@@ -146,15 +146,16 @@ export function applyDesignToScene(scene, design, opts = {}) {
 
 	for (let L = 0; L < design.nlayer; L++) {
 		const planeGeo = new THREE.PlaneGeometry(w, h, 1, 1);
+		const planeVisible = planeOpacity > 0.001;
 		const planeMat = new THREE.MeshBasicMaterial({
 			color : planeColor,
 			transparent : true,
 			opacity : planeOpacity,
 			side : THREE.DoubleSide,
 			depthTest : true,
-			// opacity 값과 무관하게 레이어 평면은 깊이 버퍼에 기록해야
-			// 중간 레이어가 안정적으로 가려지거나 드러납니다.
-			depthWrite : true,
+			// 불투명도가 0이면(완전 투명) 깊이 버퍼를 막지 않아 via/내부 구조가 보여야 합니다.
+			// 0 초과 구간에서는 깊이 기록을 유지해 0.99 vs 1.0 차이에서 발생하던 레이어 가시성 흔들림을 방지합니다.
+			depthWrite : planeVisible,
 			polygonOffset : true,
 			polygonOffsetFactor : 1,
 			polygonOffsetUnits : 1,
