@@ -375,11 +375,16 @@ function makeInitialViewForCtx(designOrNull) {
 
 		const zCenter = (designOrNull.nlayer - 1) * layerGap * 0.5;
 		const layerHeight = Math.max(layerGap, (designOrNull.nlayer - 1) * layerGap);
+		const mainTarget = [0, 0, zCenter];
+		const mainPos = [w, h, layerHeight];
+		const checkpointDist = Math.hypot(mainPos[0] - mainTarget[0], mainPos[1] - mainTarget[1], mainPos[2] - mainTarget[2]);
+		const requiredMaxDistance = Math.max(200, checkpointDist * 1.2);
 
 		v.main = {
 			...(v.main ?? {}),
-			pos : [w, h, layerHeight],
-			target : [0, 0, zCenter],
+			pos : mainPos,
+			target : mainTarget,
+			maxDistance : requiredMaxDistance,
 		};
 	}
 
@@ -1324,6 +1329,8 @@ window.addEventListener("keydown", (e) => {
 	// Main(Persp)일 때는 기존 동작 유지
 	if (camera.isPerspectiveCamera) {
 		const { toPosition, toTarget, center } = computeMKeyMove();
+		const checkpointDist = toPosition.distanceTo(toTarget);
+		mainControls.maxDistance = Math.max(mainControls.maxDistance, checkpointDist * 1.2);
 		perspMover.moveTo({ toPosition, toTarget, center });
 		return;
 	}
