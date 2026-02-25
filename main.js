@@ -374,10 +374,11 @@ function makeInitialViewForCtx(designOrNull) {
 		const h = (designOrNull.ny - 1) * designOrNull.dy;
 
 		const zCenter = (designOrNull.nlayer - 1) * layerGap * 0.5;
+		const layerHeight = Math.max(layerGap, (designOrNull.nlayer - 1) * layerGap);
 
 		v.main = {
 			...(v.main ?? {}),
-			pos : [w, h, zCenter],
+			pos : [w, h, layerHeight],
 			target : [0, 0, zCenter],
 		};
 	}
