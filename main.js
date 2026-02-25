@@ -672,8 +672,8 @@ function ensureGroupUiState(ctx) {
 	if (!ctx) return null;
 	if (!ctx.ui) ctx.ui = {};
 	if (!ctx.ui.expandedGroups) {
-		const ids = (ctx.design?.groups ?? []).map((g) => g.gid);
-		ctx.ui.expandedGroups = new Set(ids);
+		// 기본 상태에서는 그룹 목록을 접어두고, 필요할 때 사용자 확장
+		ctx.ui.expandedGroups = new Set();
 	}
 	return ctx.ui;
 }
