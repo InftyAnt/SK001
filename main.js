@@ -586,6 +586,7 @@ function setActiveSceneById(id) {
 	renderCameraButtons();
 	renderGroupTree();
 	syncLayerStyleControls();
+	syncSelectedNetForActiveScene();
 }
 
 async function addTextFilesAsScenes(files) {
@@ -644,8 +645,14 @@ const layerOpacityValueEl = document.getElementById("layerOpacityValue");
 const gridColorInputEl = document.getElementById("gridColorInput");
 const gridOpacityInputEl = document.getElementById("gridOpacityInput");
 const gridOpacityValueEl = document.getElementById("gridOpacityValue");
+const netInfoPanelEl = document.getElementById("netInfoPanel");
 
-
+let selectedNetNid = null;
+const highlightedNetMaterials = [];
+const tmpWorldA = new THREE.Vector3();
+const tmpWorldB = new THREE.Vector3();
+const tmpScreenA = new THREE.Vector2();
+const tmpScreenB = new THREE.Vector2();
 
 function clamp01(v) {
 	return Math.min(1, Math.max(0, v));
@@ -702,6 +709,180 @@ function applyActiveLayerStyleFast() {
 	return updateDesignStyleInScene(ctx.scene, getDesignRenderOpts(ctx));
 }
 
+
+function escapeHtml(str) {
+	return String(str ?? "")
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
+}
+
+function setNetInfoPanelContent(info) {
+	if (!netInfoPanelEl) return;
+	if (!info) {
+		netInfoPanelEl.textContent = "아직 선택된 넷이 없습니다. 화면에서 넷 근처를 클릭하세요.";
+		return;
+	}
+
+	const metaJson = (info.meta && Object.keys(info.meta).length > 0)
+		? JSON.stringify(info.meta)
+		: "-";
+
+	netInfoPanelEl.innerHTML = `
+		<div class = "inspect-kv">
+			<div class = "inspect-key">Net</div><div class = "inspect-value"><code>${escapeHtml(info.nid)}</code></div>
+			<div class = "inspect-key">Name</div><div class = "inspect-value">${escapeHtml(info.name ?? "-")}</div>
+			<div class = "inspect-key">Group</div><div class = "inspect-value">${escapeHtml(info.groupName ?? info.groupId ?? "-")}</div>
+			<div class = "inspect-key">Points</div><div class = "inspect-value">${escapeHtml(String(info.pointsCount ?? "-"))}</div>
+			<div class = "inspect-key">Layers</div><div class = "inspect-value">${escapeHtml(info.layersText ?? "-")}</div>
+			<div class = "inspect-key">Meta</div><div class = "inspect-value"><code>${escapeHtml(metaJson)}</code></div>
+		</div>
+	`;
+}
+
+function clearNetHighlight() {
+	while (highlightedNetMaterials.length > 0) {
+		const entry = highlightedNetMaterials.pop();
+		if (!entry?.mat) continue;
+		entry.mat.color.copy(entry.color);
+		entry.mat.opacity = entry.opacity;
+		entry.mat.transparent = (entry.opacity < 0.999);
+		entry.mat.needsUpdate = true;
+	}
+}
+
+function applyNetHighlight(nid) {
+	if (!activeScene || !nid) return false;
+	clearNetHighlight();
+
+	const seen = new Set();
+	activeScene.traverse((obj) => {
+		if (!obj?.isLine || !obj.visible) return;
+		if (typeof obj.name !== "string" || !obj.name.startsWith(`net:${nid}:`)) return;
+		const mat = obj.material;
+		if (!mat || seen.has(mat)) return;
+		seen.add(mat);
+		highlightedNetMaterials.push({ mat, color : mat.color.clone(), opacity : mat.opacity });
+		mat.color.set(0xffd54a);
+		mat.opacity = 1.0;
+		mat.transparent = false;
+		mat.needsUpdate = true;
+	});
+
+	return highlightedNetMaterials.length > 0;
+}
+
+function parseNidFromLineName(name) {
+	if (typeof name !== "string" || !name.startsWith("net:")) return null;
+	const idx = name.lastIndexOf(":L");
+	if (idx <= 4) return null;
+	return name.slice(4, idx);
+}
+
+function distanceToSegmentSq(px, py, ax, ay, bx, by) {
+	const abx = bx - ax;
+	const aby = by - ay;
+	const apx = px - ax;
+	const apy = py - ay;
+	const denom = (abx * abx) + (aby * aby);
+	if (denom <= 1e-9) return (apx * apx) + (apy * apy);
+	const t = Math.max(0, Math.min(1, ((apx * abx) + (apy * aby)) / denom));
+	const qx = ax + (abx * t);
+	const qy = ay + (aby * t);
+	const dx = px - qx;
+	const dy = py - qy;
+	return (dx * dx) + (dy * dy);
+}
+
+function worldToScreen(vec3, cam, rect, outVec2) {
+	outVec2.copy(vec3).project(cam);
+	outVec2.x = ((outVec2.x + 1) * 0.5) * rect.width;
+	outVec2.y = ((1 - outVec2.y) * 0.5) * rect.height;
+}
+
+function findNearestNetNidAtClientPoint(clientX, clientY) {
+	if (!activeScene || !camera) return null;
+	const rect = renderer.domElement.getBoundingClientRect();
+	const px = clientX - rect.left;
+	const py = clientY - rect.top;
+
+	let bestNid = null;
+	let bestDistSq = Number.POSITIVE_INFINITY;
+
+	activeScene.traverse((obj) => {
+		if (!obj?.isLine || !obj.visible) return;
+		const nid = parseNidFromLineName(obj.name);
+		if (!nid) return;
+
+		const pos = obj.geometry?.attributes?.position;
+		if (!pos || pos.count < 2) return;
+
+		for (let i = 0; i < pos.count - 1; i++) {
+			tmpWorldA.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+			tmpWorldB.fromBufferAttribute(pos, i + 1).applyMatrix4(obj.matrixWorld);
+
+			worldToScreen(tmpWorldA, camera, rect, tmpScreenA);
+			worldToScreen(tmpWorldB, camera, rect, tmpScreenB);
+
+			const d2 = distanceToSegmentSq(px, py, tmpScreenA.x, tmpScreenA.y, tmpScreenB.x, tmpScreenB.y);
+			if (d2 < bestDistSq) {
+				bestDistSq = d2;
+				bestNid = nid;
+			}
+		}
+	});
+
+	return bestNid;
+}
+
+function getNetInfoByNid(ctx, nid) {
+	if (!ctx?.design || !nid) return null;
+	for (const g of (ctx.design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			if (String(n.nid) !== String(nid)) continue;
+			const pts = typeof n.points === "function" ? n.points() : [];
+			const layers = [...new Set(pts.map((p) => p.layer))].sort((a, b) => a - b);
+			return {
+				nid : n.nid,
+				name : n.name ?? null,
+				groupId : g.gid ?? null,
+				groupName : g.name ?? null,
+				pointsCount : pts.length,
+				layersText : layers.length ? layers.join(", ") : "-",
+				meta : n.meta ?? null,
+			};
+		}
+	}
+	return { nid, name : null, groupId : null, groupName : null, pointsCount : null, layersText : "-", meta : null };
+}
+
+function selectNearestNetAtClientPoint(clientX, clientY) {
+	const nid = findNearestNetNidAtClientPoint(clientX, clientY);
+	if (!nid) return;
+	selectedNetNid = nid;
+	applyNetHighlight(nid);
+	const ctx = scenes.get(activeSceneId);
+	setNetInfoPanelContent(getNetInfoByNid(ctx, nid));
+}
+
+function syncSelectedNetForActiveScene() {
+	if (!selectedNetNid) {
+		clearNetHighlight();
+		setNetInfoPanelContent(null);
+		return;
+	}
+	const ok = applyNetHighlight(selectedNetNid);
+	if (!ok) {
+		selectedNetNid = null;
+		setNetInfoPanelContent(null);
+		return;
+	}
+	const ctx = scenes.get(activeSceneId);
+	setNetInfoPanelContent(getNetInfoByNid(ctx, selectedNetNid));
+}
+
 function ensureGroupUiState(ctx) {
 	if (!ctx) return null;
 	if (!ctx.ui) ctx.ui = {};
@@ -732,6 +913,7 @@ function reapplyActiveDesignVisibility() {
 	ctx.view = preservedView;
 
 	applyDesignToScene(ctx.scene, ctx.design, getDesignRenderOpts(ctx));
+	syncSelectedNetForActiveScene();
 	syncAxisLengthForCtx(ctx);
 	syncCameraClipPlanesForCtx(ctx);
 	applyViewState(preservedView);
@@ -1463,6 +1645,10 @@ function animate() {
 
 animate();
 
+renderer.domElement.addEventListener("click", (e) => {
+	if (e.button !== 0) return;
+	selectNearestNetAtClientPoint(e.clientX, e.clientY);
+});
 
 if (groupTreeEl) {
 	groupTreeEl.addEventListener("click", (e) => {

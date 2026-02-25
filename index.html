@@ -116,6 +116,7 @@
 							</ul>
 						</div>
 					</section>
+
 				</div>
 			</div>
 		</div>
@@ -155,6 +156,10 @@
 
 			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
 				<span class = "dock-icon">⚙️</span>
+			</button>
+
+			<button class = "dock-btn" data-tab = "inspect" title = "Inspect" aria-label = "Inspect">
+				<span class = "dock-icon">🎯</span>
 			</button>
 		</div>
 		
@@ -229,6 +234,18 @@
 									<label class = "settings-row"><input id = "axisTopY" type = "checkbox" /><span>Y</span></label>
 									<label class = "settings-row"><input id = "axisTopZ" type = "checkbox" /><span>Z</span></label>
 								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "inspect" hidden>
+						<div class = "section-title">
+							Net Inspect
+						</div>
+
+						<div class = "section-body">
+							<div id = "netInfoPanel" class = "inspect-card" aria-live = "polite">
+								아직 선택된 넷이 없습니다. 화면에서 넷 근처를 클릭하세요.
 							</div>
 						</div>
 					</section>
