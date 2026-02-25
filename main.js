@@ -648,7 +648,8 @@ const gridOpacityValueEl = document.getElementById("gridOpacityValue");
 const netInfoPanelEl = document.getElementById("netInfoPanel");
 
 let selectedNetNid = null;
-const highlightedNetMaterials = [];
+let selectedNetOverlayGroup = null;
+const selectedNetOverlayMats = [];
 const tmpWorldA = new THREE.Vector3();
 const tmpWorldB = new THREE.Vector3();
 const tmpScreenA = new THREE.Vector2();
@@ -744,36 +745,170 @@ function setNetInfoPanelContent(info) {
 	`;
 }
 
+function disposeObjectDeep(root) {
+	if (!root) return;
+	root.traverse((obj) => {
+		if (obj.geometry) obj.geometry.dispose?.();
+		if (obj.material) {
+			if (Array.isArray(obj.material)) {
+				for (const m of obj.material) m?.dispose?.();
+			}
+			else obj.material.dispose?.();
+		}
+	});
+	root.removeFromParent?.();
+}
+
 function clearNetHighlight() {
-	while (highlightedNetMaterials.length > 0) {
-		const entry = highlightedNetMaterials.pop();
-		if (!entry?.mat) continue;
-		entry.mat.color.copy(entry.color);
-		entry.mat.opacity = entry.opacity;
-		entry.mat.transparent = (entry.opacity < 0.999);
-		entry.mat.needsUpdate = true;
+	selectedNetOverlayMats.length = 0;
+	if (!selectedNetOverlayGroup) return;
+	disposeObjectDeep(selectedNetOverlayGroup);
+	selectedNetOverlayGroup = null;
+}
+
+function buildNetHighlightOverlay(ctx, group, net) {
+	if (!ctx?.design || !group || !net) return null;
+	const design = ctx.design;
+	const pts = (typeof net.points === "function") ? net.points() : [];
+	if (!Array.isArray(pts) || pts.length === 0) return null;
+
+	const layerGap = design.layerGap;
+	const zLift = layerGap * 0.005;
+	const diskZ = Math.max(zLift * 4, layerGap * 0.002);
+	const viaRingZ = diskZ + zLift;
+	const x0 = (design.nx - 1) * design.dx * 0.5;
+	const y0 = (design.ny - 1) * design.dy * 0.5;
+	const baseColor = new THREE.Color(net?.meta?.color ?? group?.color ?? "#ffffff");
+
+	const root = new THREE.Group();
+	root.name = `selectedNetOverlay:${net.nid}`;
+
+	const makePulseMaterial = (make) => {
+		const mat = make();
+		mat.color.copy(baseColor);
+		mat.transparent = true;
+		mat.opacity = 0.35;
+		selectedNetOverlayMats.push(mat);
+		return mat;
+	};
+
+	const nodeToWorld = (node, ez = 0) => new THREE.Vector3(
+		node.x * design.dx - x0,
+		node.y * design.dy - y0,
+		node.layer * layerGap + ez,
+	);
+
+	// 1) path line overlay
+	let curLayer = pts[0].layer;
+	let seg = [nodeToWorld(pts[0], zLift * 1.2)];
+	const flushSeg = () => {
+		if (seg.length < 2) return;
+		const geom = new THREE.BufferGeometry().setFromPoints(seg);
+		const mat = makePulseMaterial(() => new THREE.LineBasicMaterial({ depthTest : true, depthWrite : false }));
+		const line = new THREE.Line(geom, mat);
+		line.renderOrder = 900;
+		root.add(line);
+	};
+	for (let i = 1; i < pts.length; i++) {
+		const node = pts[i];
+		if (node.layer !== curLayer) {
+			flushSeg();
+			curLayer = node.layer;
+			seg = [nodeToWorld(node, zLift * 1.2)];
+		}
+		else seg.push(nodeToWorld(node, zLift * 1.2));
 	}
+	flushSeg();
+
+	// 2) bump/tsv/grid points overlay
+	const pointGeom = new THREE.SphereGeometry(Math.min(design.dx, design.dy) * 0.16, 14, 14);
+	for (const node of pts) {
+		if (node.type !== "bump" && node.type !== "tsv" && node.type !== "grid") continue;
+		const mat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ depthTest : true, depthWrite : false }));
+		const m = new THREE.Mesh(pointGeom, mat);
+		m.position.copy(nodeToWorld(node, (node.type === "grid") ? zLift * 2.5 : diskZ));
+		m.renderOrder = 910;
+		root.add(m);
+	}
+
+	// 3) via cylinders + rings overlay
+	const viaCylGeom = new THREE.CylinderGeometry(1, 1, 1, 20, 1, false);
+	viaCylGeom.rotateX(Math.PI / 2);
+	const viaRingGeom = new THREE.RingGeometry((design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14) * 0.65, (design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14), 32);
+	for (let i = 0; i < pts.length; i++) {
+		const node = pts[i];
+		if (node.type !== "via") continue;
+		const prev = (i > 0) ? pts[i - 1] : null;
+		const next = (i + 1 < pts.length) ? pts[i + 1] : null;
+		let a = null;
+		let b = null;
+		if (prev && prev.layer !== node.layer) { a = prev.layer; b = node.layer; }
+		else if (next && next.layer !== node.layer) { a = node.layer; b = next.layer; }
+		if (a === null || b === null) continue;
+
+		const z0 = a * layerGap;
+		const z1 = b * layerGap;
+		const h = Math.abs(z1 - z0);
+		if (h <= 1e-9) continue;
+		const midZ = (z0 + z1) * 0.5;
+
+		const cMat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ depthTest : true, depthWrite : false }));
+		const cyl = new THREE.Mesh(viaCylGeom, cMat);
+		cyl.position.set(node.x * design.dx - x0, node.y * design.dy - y0, midZ);
+		const radius = (design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14) * 1.08;
+		cyl.scale.set(radius, radius, Math.max(1e-6, h - zLift * 2));
+		cyl.renderOrder = 915;
+		root.add(cyl);
+
+		for (const L of [a, b]) {
+			const rMat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ side : THREE.DoubleSide, depthTest : true, depthWrite : false }));
+			const ring = new THREE.Mesh(viaRingGeom, rMat);
+			ring.position.set(node.x * design.dx - x0, node.y * design.dy - y0, (L * layerGap) + viaRingZ);
+			ring.renderOrder = 916;
+			root.add(ring);
+		}
+	}
+
+	return root;
 }
 
 function applyNetHighlight(nid) {
 	if (!activeScene || !nid) return false;
 	clearNetHighlight();
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) return false;
 
-	const seen = new Set();
-	activeScene.traverse((obj) => {
-		if (!obj?.isLine || !obj.visible) return;
-		if (typeof obj.name !== "string" || !obj.name.startsWith(`net:${nid}:`)) return;
-		const mat = obj.material;
-		if (!mat || seen.has(mat)) return;
-		seen.add(mat);
-		highlightedNetMaterials.push({ mat, color : mat.color.clone(), opacity : mat.opacity });
-		mat.color.set(0xffd54a);
-		mat.opacity = 1.0;
-		mat.transparent = false;
+	let pickedGroup = null;
+	let pickedNet = null;
+	for (const g of (ctx.design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			if (String(n.nid) === String(nid)) {
+				pickedGroup = g;
+				pickedNet = n;
+				break;
+			}
+		}
+		if (pickedNet) break;
+	}
+	if (!pickedGroup || !pickedNet) return false;
+
+	const overlay = buildNetHighlightOverlay(ctx, pickedGroup, pickedNet);
+	if (!overlay) return false;
+	activeScene.add(overlay);
+	selectedNetOverlayGroup = overlay;
+	return true;
+}
+
+function updateNetHighlightBlink(nowMs) {
+	if (!selectedNetOverlayGroup || selectedNetOverlayMats.length === 0) return;
+	const t = nowMs * 0.001;
+	const blink = 0.5 + 0.5 * Math.sin(t * Math.PI * 0.8); // 느린 깜빡임(0.4Hz)
+	const opacity = 0.22 + (0.58 * blink);
+	for (const mat of selectedNetOverlayMats) {
+		if (!mat) continue;
+		mat.opacity = opacity;
 		mat.needsUpdate = true;
-	});
-
-	return highlightedNetMaterials.length > 0;
+	}
 }
 
 function parseNidFromLineName(name) {
@@ -1688,6 +1823,7 @@ function animate() {
 	syncAxisOverlayForCamera(activeScene, activeCam);
 	syncAxisVisibilityForCamera(activeScene, activeCam);
 	updateAdaptiveGridVisibility(activeScene, activeCam);
+	updateNetHighlightBlink(performance.now());
 	renderer.render(activeScene, activeCam);
 }
 
