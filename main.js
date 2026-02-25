@@ -654,6 +654,7 @@ const tmpWorldA = new THREE.Vector3();
 const tmpWorldB = new THREE.Vector3();
 const tmpScreenA = new THREE.Vector2();
 const tmpScreenB = new THREE.Vector2();
+const tmpProjected = new THREE.Vector3();
 const pickRaycaster = new THREE.Raycaster();
 const pickNdc = new THREE.Vector2();
 
@@ -934,9 +935,11 @@ function distanceToSegmentSq(px, py, ax, ay, bx, by) {
 }
 
 function worldToScreen(vec3, cam, rect, outVec2) {
-	outVec2.copy(vec3).project(cam);
-	outVec2.x = ((outVec2.x + 1) * 0.5) * rect.width;
-	outVec2.y = ((1 - outVec2.y) * 0.5) * rect.height;
+	tmpProjected.copy(vec3).project(cam);
+	outVec2.set(
+		((tmpProjected.x + 1) * 0.5) * rect.width,
+		((1 - tmpProjected.y) * 0.5) * rect.height,
+	);
 }
 
 function findNearestNetNidAtClientPoint(clientX, clientY, candidateNids = null) {
