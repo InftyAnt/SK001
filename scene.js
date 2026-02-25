@@ -117,7 +117,9 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	const viaRings = [];
 	root.userData.viaRings = viaRings;
 	const gridLineMeshes = [];
+	const planeMeshes = [];
 	root.userData.gridLineMeshes = gridLineMeshes;
+	root.userData.planeMeshes = planeMeshes;
 	root.userData.gridPitch = Math.min(design.dx, design.dy);
 
 	// 격리 토글 함수(외부에서 main.js가 호출)
@@ -166,6 +168,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		plane.position.set(0, 0, layerZ(L));
 		plane.renderOrder = -20;
 		layerGroups[L].add(plane);
+		planeMeshes.push(plane);
 	}
 	
 	// =========================
@@ -211,6 +214,7 @@ export function applyDesignToScene(scene, design, opts = {}) {
 	depthTest: true,   // 윗 레이어(불투명) 뒤의 격자는 가려지도록 유지
 	depthWrite: false,
 	});
+	root.userData.gridLineMaterial = gridLineMat;
 
 	for (let L = 0; L < design.nlayer; L++) {
 	const lines = new THREE.LineSegments(gridLineGeom, gridLineMat);
@@ -703,4 +707,48 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			layerGroups[L].add(inst);
 		}
 	}
+}
+
+
+function normalizeHexColor(input, fallback) {
+	if (input === undefined || input === null) return fallback;
+	if (typeof input === "number" && Number.isFinite(input)) return input;
+	const str = String(input).trim();
+	const parsed = Number.parseInt(str.replace(/^#/, ""), 16);
+	return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clamp01(v) {
+	return Math.min(1, Math.max(0, Number(v) || 0));
+}
+
+export function updateDesignStyleInScene(scene, opts = {}) {
+	const root = scene?.userData?.designRoot;
+	if (!root) return false;
+
+	const planeColor = normalizeHexColor(opts.planeColor, 0x404040);
+	const planeOpacity = clamp01(opts.planeOpacity ?? 0.0);
+	const gridLineColor = normalizeHexColor(opts.gridLineColor, 0x575757);
+	const gridLineOpacity = clamp01(opts.gridLineOpacity ?? 0.32);
+
+	const planeOpaque = planeOpacity >= 0.999;
+	const planeMeshes = Array.isArray(root.userData?.planeMeshes) ? root.userData.planeMeshes : [];
+	for (const plane of planeMeshes) {
+		const mat = plane?.material;
+		if (!mat) continue;
+		mat.color.setHex(planeColor);
+		mat.opacity = planeOpacity;
+		mat.transparent = !planeOpaque;
+		mat.depthWrite = planeOpaque;
+		mat.needsUpdate = true;
+	}
+
+	const gridLineMat = root.userData?.gridLineMaterial;
+	if (gridLineMat) {
+		gridLineMat.color.setHex(gridLineColor);
+		gridLineMat.opacity = gridLineOpacity;
+		gridLineMat.needsUpdate = true;
+	}
+
+	return true;
 }

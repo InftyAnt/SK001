@@ -5,7 +5,7 @@ import { createPerspCameraMover, createOrthoCameraMover } from './cammove.js';
 import { initSidePanels } from './uipanels.js';
 import { initDataFilesUI } from './datafiles.js';
 import { parseDesignText } from './parser.js';
-import { applyDesignToScene } from './scene.js';
+import { applyDesignToScene, updateDesignStyleInScene } from './scene.js';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -693,6 +693,13 @@ function syncLayerStyleControls() {
 	gridColorInputEl.value = ctx.ui.layerStyle.gridLineColor ?? "#575757";
 	gridOpacityInputEl.value = String(ctx.ui.layerStyle.gridLineOpacity ?? 0.32);
 	gridOpacityValueEl.textContent = Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.32).toFixed(2);
+}
+
+
+function applyActiveLayerStyleFast() {
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) return false;
+	return updateDesignStyleInScene(ctx.scene, getDesignRenderOpts(ctx));
 }
 
 function ensureGroupUiState(ctx) {
@@ -1514,7 +1521,7 @@ if (layerColorInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeColor = layerColorInputEl.value;
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1526,7 +1533,7 @@ if (layerOpacityInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeOpacity = clamp01(Number(layerOpacityInputEl.value));
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1539,7 +1546,7 @@ if (gridColorInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineColor = gridColorInputEl.value;
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1552,7 +1559,7 @@ if (gridOpacityInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineOpacity = clamp01(Number(gridOpacityInputEl.value));
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
