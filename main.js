@@ -1186,20 +1186,23 @@ function computeMKeyMove() {
 
 		const w = (design.nx - 1) * design.dx;
 		const h = (design.ny - 1) * design.dy;
+		const layerHeight = Math.max(layerGap, (design.nlayer - 1) * layerGap);
 
 		let x = w;
 		let y = h;
+		let z = layerHeight;
 
 		// 퇴화 케이스 방지
-		if (Math.abs(x) < 1e-9 && Math.abs(y) < 1e-9) {
+		if (Math.abs(x) < 1e-9 && Math.abs(y) < 1e-9 && Math.abs(z) < 1e-9) {
 			x = 2;
 			y = 2;
+			z = 2;
 		}
 
 		const zCenter = (design.nlayer - 1) * layerGap * 0.5;
 
 		const center = new THREE.Vector3(0, 0, zCenter);
-		const toPosition = new THREE.Vector3(x, y, zCenter);
+		const toPosition = new THREE.Vector3(x, y, z);
 
 		// 원하시면 원점(0,0,0)을 보게 바꾸셔도 됩니다.
 		const toTarget = center;
@@ -1211,19 +1214,20 @@ function computeMKeyMove() {
 	const root = activeScene?.userData?.designRoot;
 	if (root) {
 		const box = new THREE.Box3().setFromObject(root);
+		const size = box.getSize(new THREE.Vector3());
+		const center = box.getCenter(new THREE.Vector3());
 
-		let x = 2 * box.max.x;
-		let y = 2 * box.max.y;
+		let x = size.x;
+		let y = size.y;
+		let z = Math.max(size.z, 2);
 
-		if (!Number.isFinite(x) || !Number.isFinite(y)) {
+		if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
 			x = 2;
 			y = 2;
+			z = 2;
 		}
 
-		const zCenter = (box.min.z + box.max.z) * 0.5;
-
-		const center = new THREE.Vector3(0, 0, zCenter);
-		const toPosition = new THREE.Vector3(x, y, zCenter);
+		const toPosition = new THREE.Vector3(x, y, z);
 		const toTarget = center;
 
 		return { toPosition, toTarget, center };
