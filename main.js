@@ -903,7 +903,12 @@ function getNetInfoByNid(ctx, nid) {
 
 function selectNearestNetAtClientPoint(clientX, clientY) {
 	const nid = pickNearestNetFromClick(clientX, clientY);
-	if (!nid) return;
+	if (!nid) {
+		selectedNetNid = null;
+		clearNetHighlight();
+		setNetInfoPanelContent(null);
+		return;
+	}
 	selectedNetNid = nid;
 	applyNetHighlight(nid);
 	const ctx = scenes.get(activeSceneId);
