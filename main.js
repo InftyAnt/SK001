@@ -80,7 +80,7 @@ mainControls.minDistance = 0.2;
 mainControls.maxDistance = 200;
 
 topviewControls.minZoom = 0.01;
-topviewControls.maxZoom = 10;
+topviewControls.maxZoom = 1000;
 
 // 6-B. 유틸 함수 선언 및 정의
 function getActiveCamera() {
@@ -299,9 +299,9 @@ function makeDefaultLayerTopState(design, layerIndex) {
 	const D = Math.max(w, h) * 2.0 + design.layerGap * 2.0;
 
 	// 요구사항: “반 화면” 안에 들어가는 최대 배율을 구하고,
-	// 그 값을 슬라이더의 최소 배율로, 최대 배율은 100배로
+	// 그 값을 슬라이더의 최소 배율로, 최대 배율은 1000배로
 	const zMin = computeFitZoomForDesign(design);
-	const zMax = zMin * 100.0;
+	const zMax = zMin * 1000.0;
 
 	return {
 		pos : [0, 0, z + D],
