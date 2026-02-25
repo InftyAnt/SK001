@@ -44,12 +44,17 @@ topviewcamera.position.set(2, 2, 2);
 let camera = maincamera;
 
 /* 3. Renderer 생성 */
+const LEGACY_PIXEL_RATIO_CAP = 2.0;
+const RENDER_PIXEL_RATIO_CAP = 1.25; // 렌더 해상도를 낮춰 카메라 이동 시 FPS 확보
+const FPS_BOOST_RATIO_EST = (LEGACY_PIXEL_RATIO_CAP / RENDER_PIXEL_RATIO_CAP) ** 2;
+const CAMERA_SPEED_COMPENSATION = 1 / FPS_BOOST_RATIO_EST;
+
 const renderer = new THREE.WebGLRenderer({
 	antialias : true,
 	depth : true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, RENDER_PIXEL_RATIO_CAP));
 document.body.appendChild(renderer.domElement);
 
 /* 4. 카메라 컨트롤 생성 */
@@ -62,6 +67,17 @@ mainControls.enabled = true;
 const topviewControls = new OrbitControls(topviewcamera, renderer.domElement);
 topviewControls.enableDamping = false;
 topviewControls.enabled = false;
+
+// FPS 향상 비율만큼 카메라 조작 속도를 낮춰 실제 이동 속도를 이전과 유사하게 유지
+mainControls.rotateSpeed *= CAMERA_SPEED_COMPENSATION;
+mainControls.panSpeed *= CAMERA_SPEED_COMPENSATION;
+mainControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
+mainControls.autoRotateSpeed *= CAMERA_SPEED_COMPENSATION;
+
+topviewControls.rotateSpeed *= CAMERA_SPEED_COMPENSATION;
+topviewControls.panSpeed *= CAMERA_SPEED_COMPENSATION;
+topviewControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
+topviewControls.autoRotateSpeed *= CAMERA_SPEED_COMPENSATION;
 
 // 4-C. 현재 카메라의 컨트롤
 let controls = mainControls;
@@ -130,7 +146,7 @@ let axisVisibleTop = { x : true, y : true, z : false };
 let isMainControlsInteracting = false;
 
 
-const TOPVIEW_PAN_PIXELS_PER_SEC = 500;
+const TOPVIEW_PAN_PIXELS_PER_SEC = 500 * CAMERA_SPEED_COMPENSATION;
 const TOPVIEW_MIN_GRID_PIXEL_SPACING = 6;
 const topviewPanPressed = new Set();
 
@@ -971,7 +987,7 @@ function removeScene(id) {
 /* 7. 반응형 (창 크기의 변화에 대응) */
 function onResize() {
 	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+	renderer.setPixelRatio(Math.min(window.devicePixelRatio, RENDER_PIXEL_RATIO_CAP));
 	
 	const aspect = window.innerWidth / window.innerHeight;
 	
