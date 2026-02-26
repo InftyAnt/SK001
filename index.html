@@ -19,6 +19,7 @@
 	</script>
 	
 	<link rel = "stylesheet" href = "./style.css" />
+	<link rel = "icon" href = "data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%23111%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%228%22 fill=%22%2359d%22/%3E%3C/svg%3E" />
 </head>
 
 <body>
@@ -116,6 +117,7 @@
 							</ul>
 						</div>
 					</section>
+
 				</div>
 			</div>
 		</div>
@@ -148,6 +150,18 @@
 			<button class = "dock-btn" data-tab = "zoom" title = "Zoom" aria-label = "Zoom">
 				<span class = "dock-icon">🔍</span>
 			</button>
+
+			<button class = "dock-btn" data-tab = "camera" title = "Camera" aria-label = "Camera">
+				<span class = "dock-icon">📷</span>
+			</button>
+
+			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
+				<span class = "dock-icon">⚙️</span>
+			</button>
+
+			<button class = "dock-btn" data-tab = "inspect" title = "Inspect" aria-label = "Inspect">
+				<span class = "dock-icon">🎯</span>
+			</button>
 		</div>
 		
 		<div class = "panel-clip">
@@ -173,6 +187,67 @@
 							
 							<input id = "zoomSlider" type = "range" min = "0" max = "1000" value = "500" />
 							
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "camera" hidden>
+						<div class = "section-title">
+							Camera
+						</div>
+
+						<div class = "section-body">
+							<div id = "cameraButtons" class = "camera-list" aria-label = "카메라 목록">
+							</div>
+							<div class = "camera-hint">
+								Main 또는 Layer Top 카메라를 선택할 수 있습니다.
+							</div>
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "settings" hidden>
+						<div class = "section-title">
+							Settings
+						</div>
+
+						<div class = "section-body">
+							<div class = "settings-card">
+								<label class = "settings-row">
+									<input id = "mainAutoRotateZ" type = "checkbox" />
+									<span>Main Auto Rotate (Z)</span>
+								</label>
+							</div>
+
+							<div class = "settings-card">
+								<div class = "settings-title">Main Axis</div>
+								<div class = "settings-grid">
+									<label class = "settings-row"><input id = "axisMainAll" type = "checkbox" /><span>All</span></label>
+									<label class = "settings-row"><input id = "axisMainX" type = "checkbox" /><span>X</span></label>
+									<label class = "settings-row"><input id = "axisMainY" type = "checkbox" /><span>Y</span></label>
+									<label class = "settings-row"><input id = "axisMainZ" type = "checkbox" /><span>Z</span></label>
+								</div>
+							</div>
+
+							<div class = "settings-card">
+								<div class = "settings-title">Top Axis</div>
+								<div class = "settings-grid">
+									<label class = "settings-row"><input id = "axisTopAll" type = "checkbox" /><span>All</span></label>
+									<label class = "settings-row"><input id = "axisTopX" type = "checkbox" /><span>X</span></label>
+									<label class = "settings-row"><input id = "axisTopY" type = "checkbox" /><span>Y</span></label>
+									<label class = "settings-row"><input id = "axisTopZ" type = "checkbox" /><span>Z</span></label>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "inspect" hidden>
+						<div class = "section-title">
+							Net Inspect
+						</div>
+
+						<div class = "section-body">
+							<div id = "netInfoPanel" class = "inspect-card" aria-live = "polite">
+								아직 선택된 넷이 없습니다. 화면에서 넷 근처를 클릭하세요.
+							</div>
 						</div>
 					</section>
 				</div>

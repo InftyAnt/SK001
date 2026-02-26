@@ -5,7 +5,7 @@ import { createPerspCameraMover, createOrthoCameraMover } from './cammove.js';
 import { initSidePanels } from './uipanels.js';
 import { initDataFilesUI } from './datafiles.js';
 import { parseDesignText } from './parser.js';
-import { applyDesignToScene } from './scene.js';
+import { applyDesignToScene, updateDesignStyleInScene } from './scene.js';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -586,6 +586,7 @@ function setActiveSceneById(id) {
 	renderCameraButtons();
 	renderGroupTree();
 	syncLayerStyleControls();
+	syncSelectedNetForActiveScene();
 }
 
 async function addTextFilesAsScenes(files) {
@@ -644,8 +645,18 @@ const layerOpacityValueEl = document.getElementById("layerOpacityValue");
 const gridColorInputEl = document.getElementById("gridColorInput");
 const gridOpacityInputEl = document.getElementById("gridOpacityInput");
 const gridOpacityValueEl = document.getElementById("gridOpacityValue");
+const netInfoPanelEl = document.getElementById("netInfoPanel");
 
-
+let selectedNetNid = null;
+let selectedNetOverlayGroup = null;
+const selectedNetOverlayMats = [];
+const tmpWorldA = new THREE.Vector3();
+const tmpWorldB = new THREE.Vector3();
+const tmpScreenA = new THREE.Vector2();
+const tmpScreenB = new THREE.Vector2();
+const tmpProjected = new THREE.Vector3();
+const pickRaycaster = new THREE.Raycaster();
+const pickNdc = new THREE.Vector2();
 
 function clamp01(v) {
 	return Math.min(1, Math.max(0, v));
@@ -695,6 +706,369 @@ function syncLayerStyleControls() {
 	gridOpacityValueEl.textContent = Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.32).toFixed(2);
 }
 
+
+function applyActiveLayerStyleFast() {
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) return false;
+	return updateDesignStyleInScene(ctx.scene, getDesignRenderOpts(ctx));
+}
+
+
+function escapeHtml(str) {
+	return String(str ?? "")
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&#39;");
+}
+
+function setNetInfoPanelContent(info) {
+	if (!netInfoPanelEl) return;
+	if (!info) {
+		netInfoPanelEl.textContent = "아직 선택된 넷이 없습니다. 화면에서 넷 근처를 클릭하세요.";
+		return;
+	}
+
+	const metaJson = (info.meta && Object.keys(info.meta).length > 0)
+		? JSON.stringify(info.meta)
+		: "-";
+
+	netInfoPanelEl.innerHTML = `
+		<div class = "inspect-kv">
+			<div class = "inspect-key">Net</div><div class = "inspect-value"><code>${escapeHtml(info.nid)}</code></div>
+			<div class = "inspect-key">Name</div><div class = "inspect-value">${escapeHtml(info.name ?? "-")}</div>
+			<div class = "inspect-key">Group</div><div class = "inspect-value">${escapeHtml(info.groupName ?? info.groupId ?? "-")}</div>
+			<div class = "inspect-key">Points</div><div class = "inspect-value">${escapeHtml(String(info.pointsCount ?? "-"))}</div>
+			<div class = "inspect-key">Layers</div><div class = "inspect-value">${escapeHtml(info.layersText ?? "-")}</div>
+			<div class = "inspect-key">Meta</div><div class = "inspect-value"><code>${escapeHtml(metaJson)}</code></div>
+		</div>
+	`;
+}
+
+function disposeObjectDeep(root) {
+	if (!root) return;
+	root.traverse((obj) => {
+		if (obj.geometry) obj.geometry.dispose?.();
+		if (obj.material) {
+			if (Array.isArray(obj.material)) {
+				for (const m of obj.material) m?.dispose?.();
+			}
+			else obj.material.dispose?.();
+		}
+	});
+	root.removeFromParent?.();
+}
+
+function clearNetHighlight() {
+	selectedNetOverlayMats.length = 0;
+	if (!selectedNetOverlayGroup) return;
+	disposeObjectDeep(selectedNetOverlayGroup);
+	selectedNetOverlayGroup = null;
+}
+
+function buildNetHighlightOverlay(ctx, group, net) {
+	if (!ctx?.design || !group || !net) return null;
+	const design = ctx.design;
+	const pts = (typeof net.points === "function") ? net.points() : [];
+	if (!Array.isArray(pts) || pts.length === 0) return null;
+
+	const layerGap = design.layerGap;
+	const zLift = layerGap * 0.005;
+	const diskZ = Math.max(zLift * 4, layerGap * 0.002);
+	const viaRingZ = diskZ + zLift;
+	const x0 = (design.nx - 1) * design.dx * 0.5;
+	const y0 = (design.ny - 1) * design.dy * 0.5;
+	const baseColor = new THREE.Color(net?.meta?.color ?? group?.color ?? "#ffffff");
+
+	const root = new THREE.Group();
+	root.name = `selectedNetOverlay:${net.nid}`;
+
+	const makePulseMaterial = (make) => {
+		const mat = make();
+		mat.color.copy(baseColor);
+		mat.transparent = true;
+		mat.opacity = 0.35;
+		selectedNetOverlayMats.push(mat);
+		return mat;
+	};
+
+	const nodeToWorld = (node, ez = 0) => new THREE.Vector3(
+		node.x * design.dx - x0,
+		node.y * design.dy - y0,
+		node.layer * layerGap + ez,
+	);
+
+	// 1) path line overlay
+	let curLayer = pts[0].layer;
+	let seg = [nodeToWorld(pts[0], zLift * 1.2)];
+	const flushSeg = () => {
+		if (seg.length < 2) return;
+		const geom = new THREE.BufferGeometry().setFromPoints(seg);
+		const mat = makePulseMaterial(() => new THREE.LineBasicMaterial({ depthTest : true, depthWrite : false }));
+		const line = new THREE.Line(geom, mat);
+		line.renderOrder = 900;
+		root.add(line);
+	};
+	for (let i = 1; i < pts.length; i++) {
+		const node = pts[i];
+		if (node.layer !== curLayer) {
+			flushSeg();
+			curLayer = node.layer;
+			seg = [nodeToWorld(node, zLift * 1.2)];
+		}
+		else seg.push(nodeToWorld(node, zLift * 1.2));
+	}
+	flushSeg();
+
+	// 2) bump/tsv/grid points overlay
+	const pointGeom = new THREE.SphereGeometry(Math.min(design.dx, design.dy) * 0.16, 14, 14);
+	for (const node of pts) {
+		if (node.type !== "bump" && node.type !== "tsv" && node.type !== "grid") continue;
+		const mat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ depthTest : true, depthWrite : false }));
+		const m = new THREE.Mesh(pointGeom, mat);
+		m.position.copy(nodeToWorld(node, (node.type === "grid") ? zLift * 2.5 : diskZ));
+		m.renderOrder = 910;
+		root.add(m);
+	}
+
+	// 3) via cylinders + rings overlay
+	const viaCylGeom = new THREE.CylinderGeometry(1, 1, 1, 20, 1, false);
+	viaCylGeom.rotateX(Math.PI / 2);
+	const viaRingGeom = new THREE.RingGeometry((design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14) * 0.65, (design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14), 32);
+	for (let i = 0; i < pts.length; i++) {
+		const node = pts[i];
+		if (node.type !== "via") continue;
+		const prev = (i > 0) ? pts[i - 1] : null;
+		const next = (i + 1 < pts.length) ? pts[i + 1] : null;
+		let a = null;
+		let b = null;
+		if (prev && prev.layer !== node.layer) { a = prev.layer; b = node.layer; }
+		else if (next && next.layer !== node.layer) { a = node.layer; b = next.layer; }
+		if (a === null || b === null) continue;
+
+		const z0 = a * layerGap;
+		const z1 = b * layerGap;
+		const h = Math.abs(z1 - z0);
+		if (h <= 1e-9) continue;
+		const midZ = (z0 + z1) * 0.5;
+
+		const cMat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ depthTest : true, depthWrite : false }));
+		const cyl = new THREE.Mesh(viaCylGeom, cMat);
+		cyl.position.set(node.x * design.dx - x0, node.y * design.dy - y0, midZ);
+		const radius = (design.viaRadius ?? Math.min(design.dx, design.dy) * 0.14) * 1.08;
+		cyl.scale.set(radius, radius, Math.max(1e-6, h - zLift * 2));
+		cyl.renderOrder = 915;
+		root.add(cyl);
+
+		for (const L of [a, b]) {
+			const rMat = makePulseMaterial(() => new THREE.MeshBasicMaterial({ side : THREE.DoubleSide, depthTest : true, depthWrite : false }));
+			const ring = new THREE.Mesh(viaRingGeom, rMat);
+			ring.position.set(node.x * design.dx - x0, node.y * design.dy - y0, (L * layerGap) + viaRingZ);
+			ring.renderOrder = 916;
+			root.add(ring);
+		}
+	}
+
+	return root;
+}
+
+function applyNetHighlight(nid) {
+	if (!activeScene || !nid) return false;
+	clearNetHighlight();
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) return false;
+
+	let pickedGroup = null;
+	let pickedNet = null;
+	for (const g of (ctx.design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			if (String(n.nid) === String(nid)) {
+				pickedGroup = g;
+				pickedNet = n;
+				break;
+			}
+		}
+		if (pickedNet) break;
+	}
+	if (!pickedGroup || !pickedNet) return false;
+
+	const overlay = buildNetHighlightOverlay(ctx, pickedGroup, pickedNet);
+	if (!overlay) return false;
+	activeScene.add(overlay);
+	selectedNetOverlayGroup = overlay;
+	return true;
+}
+
+function updateNetHighlightBlink(nowMs) {
+	if (!selectedNetOverlayGroup || selectedNetOverlayMats.length === 0) return;
+	const cycleMs = 1200; // 1.2초 주기(느리게)
+	const phase = (nowMs % cycleMs) / cycleMs;
+	const opacity = (phase < 0.5) ? 1.0 : 0.0; // 완전 on/off 깜빡임
+	for (const mat of selectedNetOverlayMats) {
+		if (!mat) continue;
+		mat.opacity = opacity;
+		mat.needsUpdate = true;
+	}
+}
+
+function parseNidFromLineName(name) {
+	if (typeof name !== "string" || !name.startsWith("net:")) return null;
+	const idx = name.lastIndexOf(":L");
+	if (idx <= 4) return null;
+	return name.slice(4, idx);
+}
+
+function distanceToSegmentSq(px, py, ax, ay, bx, by) {
+	const abx = bx - ax;
+	const aby = by - ay;
+	const apx = px - ax;
+	const apy = py - ay;
+	const denom = (abx * abx) + (aby * aby);
+	if (denom <= 1e-9) return (apx * apx) + (apy * apy);
+	const t = Math.max(0, Math.min(1, ((apx * abx) + (apy * aby)) / denom));
+	const qx = ax + (abx * t);
+	const qy = ay + (aby * t);
+	const dx = px - qx;
+	const dy = py - qy;
+	return (dx * dx) + (dy * dy);
+}
+
+function worldToScreen(vec3, cam, rect, outVec2) {
+	tmpProjected.copy(vec3).project(cam);
+	outVec2.set(
+		((tmpProjected.x + 1) * 0.5) * rect.width,
+		((1 - tmpProjected.y) * 0.5) * rect.height,
+	);
+}
+
+function findNearestNetNidAtClientPoint(clientX, clientY, candidateNids = null) {
+	if (!activeScene || !camera) return null;
+	const rect = renderer.domElement.getBoundingClientRect();
+	const px = clientX - rect.left;
+	const py = clientY - rect.top;
+	const filter = (candidateNids && candidateNids.size > 0) ? candidateNids : null;
+
+	let bestNid = null;
+	let bestDistSq = Number.POSITIVE_INFINITY;
+
+	activeScene.traverse((obj) => {
+		if (!obj?.isLine || !obj.visible) return;
+		const nid = parseNidFromLineName(obj.name);
+		if (!nid) return;
+		if (filter && !filter.has(String(nid))) return;
+
+		const pos = obj.geometry?.attributes?.position;
+		if (!pos || pos.count < 2) return;
+
+		for (let i = 0; i < pos.count - 1; i++) {
+			tmpWorldA.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+			tmpWorldB.fromBufferAttribute(pos, i + 1).applyMatrix4(obj.matrixWorld);
+
+			worldToScreen(tmpWorldA, camera, rect, tmpScreenA);
+			worldToScreen(tmpWorldB, camera, rect, tmpScreenB);
+
+			const d2 = distanceToSegmentSq(px, py, tmpScreenA.x, tmpScreenA.y, tmpScreenB.x, tmpScreenB.y);
+			if (d2 < bestDistSq) {
+				bestDistSq = d2;
+				bestNid = String(nid);
+			}
+		}
+	});
+
+	return bestNid;
+}
+
+function resolveHitCandidateNids(hit) {
+	if (!hit?.object) return null;
+	if (hit.object.isLine) {
+		const nid = parseNidFromLineName(hit.object.name);
+		return nid ? new Set([String(nid)]) : null;
+	}
+	const keys = hit.object?.userData?.pickKeys;
+	if (!Array.isArray(keys)) return null;
+	const iid = hit.instanceId;
+	if (!Number.isInteger(iid) || iid < 0 || iid >= keys.length) return null;
+	const key = keys[iid];
+	const root = activeScene?.userData?.designRoot;
+	const index = root?.userData?.componentNetIndex;
+	if (!(index instanceof Map)) return null;
+	const nids = index.get(key);
+	if (!(nids instanceof Set) || nids.size === 0) return null;
+	return new Set([...nids].map((v) => String(v)));
+}
+
+function pickNearestNetFromClick(clientX, clientY) {
+	if (!activeScene || !camera) return null;
+	const rect = renderer.domElement.getBoundingClientRect();
+	pickNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+	pickNdc.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+	pickRaycaster.params.Line.threshold = 0.18;
+	pickRaycaster.setFromCamera(pickNdc, camera);
+	const hits = pickRaycaster.intersectObject(activeScene, true);
+
+	for (const hit of hits) {
+		const nids = resolveHitCandidateNids(hit);
+		if (!nids || nids.size === 0) continue;
+		if (nids.size === 1) return [...nids][0];
+		const nearest = findNearestNetNidAtClientPoint(clientX, clientY, nids);
+		if (nearest) return nearest;
+	}
+
+	return null;
+}
+
+function getNetInfoByNid(ctx, nid) {
+	if (!ctx?.design || !nid) return null;
+	for (const g of (ctx.design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			if (String(n.nid) !== String(nid)) continue;
+			const pts = typeof n.points === "function" ? n.points() : [];
+			const layers = [...new Set(pts.map((p) => p.layer))].sort((a, b) => a - b);
+			return {
+				nid : n.nid,
+				name : n.name ?? null,
+				groupId : g.gid ?? null,
+				groupName : g.name ?? null,
+				pointsCount : pts.length,
+				layersText : layers.length ? layers.join(", ") : "-",
+				meta : n.meta ?? null,
+			};
+		}
+	}
+	return { nid, name : null, groupId : null, groupName : null, pointsCount : null, layersText : "-", meta : null };
+}
+
+function selectNearestNetAtClientPoint(clientX, clientY) {
+	const nid = pickNearestNetFromClick(clientX, clientY);
+	if (!nid) {
+		selectedNetNid = null;
+		clearNetHighlight();
+		setNetInfoPanelContent(null);
+		return;
+	}
+	selectedNetNid = nid;
+	applyNetHighlight(nid);
+	const ctx = scenes.get(activeSceneId);
+	setNetInfoPanelContent(getNetInfoByNid(ctx, nid));
+}
+
+function syncSelectedNetForActiveScene() {
+	if (!selectedNetNid) {
+		clearNetHighlight();
+		setNetInfoPanelContent(null);
+		return;
+	}
+	const ok = applyNetHighlight(selectedNetNid);
+	if (!ok) {
+		selectedNetNid = null;
+		setNetInfoPanelContent(null);
+		return;
+	}
+	const ctx = scenes.get(activeSceneId);
+	setNetInfoPanelContent(getNetInfoByNid(ctx, selectedNetNid));
+}
+
 function ensureGroupUiState(ctx) {
 	if (!ctx) return null;
 	if (!ctx.ui) ctx.ui = {};
@@ -725,6 +1099,7 @@ function reapplyActiveDesignVisibility() {
 	ctx.view = preservedView;
 
 	applyDesignToScene(ctx.scene, ctx.design, getDesignRenderOpts(ctx));
+	syncSelectedNetForActiveScene();
 	syncAxisLengthForCtx(ctx);
 	syncCameraClipPlanesForCtx(ctx);
 	applyViewState(preservedView);
@@ -1428,11 +1803,13 @@ function updateAdaptiveGridVisibility(scene, activeCam) {
 }
 
 /* 11. 애니메이션 */
-const clock = new THREE.Clock();
+let lastFrameTimeMs = performance.now();
 function animate() {
 	requestAnimationFrame(animate);
 	
-	const dt = clock.getDelta();
+	const nowMs = performance.now();
+	const dt = Math.max(0, (nowMs - lastFrameTimeMs) / 1000);
+	lastFrameTimeMs = nowMs;
 	
 	mainControls.autoRotate = false;
 	
@@ -1451,11 +1828,16 @@ function animate() {
 	syncAxisOverlayForCamera(activeScene, activeCam);
 	syncAxisVisibilityForCamera(activeScene, activeCam);
 	updateAdaptiveGridVisibility(activeScene, activeCam);
+	updateNetHighlightBlink(nowMs);
 	renderer.render(activeScene, activeCam);
 }
 
 animate();
 
+renderer.domElement.addEventListener("click", (e) => {
+	if (e.button !== 0) return;
+	selectNearestNetAtClientPoint(e.clientX, e.clientY);
+});
 
 if (groupTreeEl) {
 	groupTreeEl.addEventListener("click", (e) => {
@@ -1514,7 +1896,7 @@ if (layerColorInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeColor = layerColorInputEl.value;
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1526,7 +1908,7 @@ if (layerOpacityInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.planeOpacity = clamp01(Number(layerOpacityInputEl.value));
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1539,7 +1921,7 @@ if (gridColorInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineColor = gridColorInputEl.value;
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
@@ -1552,7 +1934,7 @@ if (gridOpacityInputEl) {
 		if (!ctx.ui) ctx.ui = {};
 		if (!ctx.ui.layerStyle) ctx.ui.layerStyle = { planeColor : "#404040", planeOpacity : 0.0, gridLineColor : "#575757", gridLineOpacity : 0.32 };
 		ctx.ui.layerStyle.gridLineOpacity = clamp01(Number(gridOpacityInputEl.value));
-		reapplyActiveDesignVisibility();
+		if (!applyActiveLayerStyleFast()) reapplyActiveDesignVisibility();
 		syncLayerStyleControls();
 	});
 }
