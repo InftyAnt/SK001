@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang = "ko">
+<html lang = "en">
 
 <head>
 	<meta charset = "utf-8" />
@@ -85,8 +85,14 @@
 						
 						<div class = "section-body">
 							<div class = "row" style = "gap : 8px; margin-bottom : 10px;">
+								<button id = "newSceneOpenBtn" class = "btn">
+									New Project
+								</button>
+							</div>
+
+							<div class = "row" style = "gap : 8px; margin-bottom : 10px;">
 								<button id = "dataPickBtn" class = "btn">
-									텍스트 파일 추가
+									Open Project
 								</button>
 								
 							</div>
@@ -98,10 +104,15 @@
 								multiple
 								hidden
 							/>
+							<div class = "row" style = "gap : 8px; margin-bottom : 10px;">
+								<button id = "dataSaveBtn" class = "btn">
+									Save Project
+								</button>
+							</div>
 							
-							<div id = "dataDrop" class = "dropzone" role = "button" aria-label = "파일 드롭 영역">
+							<div id = "dataDrop" class = "dropzone" role = "button" aria-label = "Project file drop zone">
 								<div class = "dropzone-title">
-									여기에 텍스트 파일을 드롭
+									Drop project files here
 								</div>
 								
 							</div>
@@ -123,44 +134,44 @@
 		</div>
 		
 		<div class = "dock" role = "tablist" aria-label = "Left dock">
-			<button class = "dock-btn toggle" data-action = "toggle" title = "접기/펴기" aria-label = "접기/펴기">
-				≡
-			</button>
+			<button class = "dock-btn toggle" data-action = "toggle" title = "Collapse/Expand" aria-label = "Collapse/Expand">
+                <img class = "dock-icon" src = "./assets/icons/toggle.svg" alt = "" />
+            </button>
 			
 			<button class = "dock-btn" data-tab = "layers" title = "Styles" aria-label = "Styles">
-				<span class = "dock-icon">🎨</span>
+				<img class = "dock-icon" src = "./assets/icons/layers.svg" alt = "" />
 			</button>
 
 			<button class = "dock-btn" data-tab = "nets" title = "Nets" aria-label = "Nets">
-				<span class = "dock-icon">🧩</span>
+				<img class = "dock-icon" src = "./assets/icons/nets.svg" alt = "" />
 			</button>
 			
 			<button class = "dock-btn" data-tab = "data" title = "Data" aria-label = "Data">
-				<span class = "dock-icon">📂</span>
+				<img class = "dock-icon" src = "./assets/icons/data.svg" alt = "" />
 			</button>
 		</div>
 	</div>
 	
 	<div id = "ui-right" class = "side-ui right" aria-label = "Right UI">
 		<div class = "dock" role = "tablist" aria-label = "Right dock">
-			<button class = "dock-btn toggle" data-action = "toggle" title = "접기/펴기" aria-label = "접기/펴기">
-				≡
-			</button>
+			<button class = "dock-btn toggle" data-action = "toggle" title = "Collapse/Expand" aria-label = "Collapse/Expand">
+                <img class = "dock-icon" src = "./assets/icons/toggle.svg" alt = "" />
+            </button>
 			
 			<button class = "dock-btn" data-tab = "zoom" title = "Zoom" aria-label = "Zoom">
-				<span class = "dock-icon">🔍</span>
+				<img class = "dock-icon" src = "./assets/icons/zoom.svg" alt = "" />
 			</button>
 
 			<button class = "dock-btn" data-tab = "camera" title = "Camera" aria-label = "Camera">
-				<span class = "dock-icon">📷</span>
+				<img class = "dock-icon" src = "./assets/icons/camera.svg" alt = "" />
 			</button>
 
 			<button class = "dock-btn" data-tab = "settings" title = "Settings" aria-label = "Settings">
-				<span class = "dock-icon">⚙️</span>
+				<img class = "dock-icon" src = "./assets/icons/settings.svg" alt = "" />
 			</button>
 
 			<button class = "dock-btn" data-tab = "inspect" title = "Inspect" aria-label = "Inspect">
-				<span class = "dock-icon">🎯</span>
+				<img class = "dock-icon" src = "./assets/icons/inspect.svg" alt = "" />
 			</button>
 		</div>
 		
@@ -196,10 +207,13 @@
 						</div>
 
 						<div class = "section-body">
-							<div id = "cameraButtons" class = "camera-list" aria-label = "카메라 목록">
+							<div id = "cameraButtons" class = "camera-list" aria-label = "Camera list">
 							</div>
+							<button id = "cameraResetBtn" class = "camera-btn camera-reset-btn" type = "button">
+								Reset Camera View
+							</button>
 							<div class = "camera-hint">
-								Main 또는 Layer Top 카메라를 선택할 수 있습니다.
+								Select the Main camera or a Layer Top camera.
 							</div>
 						</div>
 					</section>
@@ -214,6 +228,10 @@
 								<label class = "settings-row">
 									<input id = "mainAutoRotateZ" type = "checkbox" />
 									<span>Main Auto Rotate (Z)</span>
+								</label>
+								<label class = "settings-row">
+									<input id = "mainInvertZ" type = "checkbox" />
+									<span>Main Z Invert</span>
 								</label>
 							</div>
 
@@ -246,10 +264,88 @@
 
 						<div class = "section-body">
 							<div id = "netInfoPanel" class = "inspect-card" aria-live = "polite">
-								아직 선택된 넷이 없습니다. 화면에서 넷 근처를 클릭하세요.
+								No net is selected yet. Click near a net in the viewport.
 							</div>
 						</div>
 					</section>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id = "newSceneModal" class = "modal-overlay" hidden aria-hidden = "true">
+		<div class = "modal-backdrop" data-role = "modal-close"></div>
+		<div class = "modal-card" role = "dialog" aria-modal = "true" aria-labelledby = "newSceneModalTitle">
+			<div class = "modal-head">
+				<div id = "newSceneModalTitle" class = "modal-title">New Empty Project</div>
+				<button id = "newSceneCloseBtn" class = "modal-close-btn" type = "button" aria-label = "Close">
+					&times;
+				</button>
+			</div>
+
+			<div class = "modal-body">
+				<div class = "modal-group">
+					<div class = "modal-group-title">Project</div>
+					<label class = "modal-row">
+						<span>Name</span>
+						<input id = "newSceneName" type = "text" value = "Untitled Project" />
+					</label>
+					<label class = "modal-row">
+						<span>Layers</span>
+						<input id = "newSceneNlayer" type = "text" inputmode = "numeric" value = "4" />
+					</label>
+				</div>
+
+				<div class = "modal-group">
+					<div class = "modal-group-title">Grid</div>
+					<label class = "modal-row">
+						<span>Nx</span>
+						<input id = "newSceneNx" type = "text" inputmode = "numeric" value = "64" />
+					</label>
+					<label class = "modal-row">
+						<span>Ny</span>
+						<input id = "newSceneNy" type = "text" inputmode = "numeric" value = "64" />
+					</label>
+				</div>
+
+				<div class = "modal-group">
+					<div class = "modal-group-title">Pitch</div>
+					<label class = "modal-row">
+						<span>Dx</span>
+						<input id = "newSceneDx" type = "text" inputmode = "decimal" value = "1.0" />
+					</label>
+					<label class = "modal-row">
+						<span>Dy</span>
+						<input id = "newSceneDy" type = "text" inputmode = "decimal" value = "1.0" />
+					</label>
+					<label class = "modal-row">
+						<span>Layer Gap</span>
+						<input id = "newSceneLayerGap" type = "text" inputmode = "decimal" value = "2.0" />
+					</label>
+				</div>
+
+				<div class = "modal-group">
+					<div class = "modal-group-title">Radius</div>
+					<label class = "modal-row">
+						<span>Bump R</span>
+						<input id = "newSceneBumpRadius" type = "text" inputmode = "decimal" placeholder = "auto" />
+					</label>
+					<label class = "modal-row">
+						<span>TSV R</span>
+						<input id = "newSceneTsvRadius" type = "text" inputmode = "decimal" placeholder = "auto" />
+					</label>
+					<label class = "modal-row">
+						<span>Via R</span>
+						<input id = "newSceneViaRadius" type = "text" inputmode = "decimal" placeholder = "auto" />
+					</label>
+				</div>
+			</div>
+
+			<div class = "modal-foot">
+				<div id = "newSceneCreateMsg" class = "new-project-msg error" aria-live = "polite"></div>
+				<div class = "modal-actions">
+					<button id = "newSceneCancelBtn" class = "modal-btn" type = "button">Cancel</button>
+					<button id = "newSceneCreateBtn" class = "modal-btn primary" type = "button">Create Empty Scene</button>
 				</div>
 			</div>
 		</div>

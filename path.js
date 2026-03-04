@@ -252,7 +252,7 @@ export class Group {
 	 * @param {number} dy
 	 */
 	calcLen(dx, dy) {
-		// 하나라도 unrouted면 그룹 길이 지표는 무효
+		// Note.
 		for (const n of this.nets) {
 			if (!n.isRouted()) {
 				this.minLen = null;
@@ -267,7 +267,7 @@ export class Group {
 
 		for (const n of this.nets) {
 			n.setPathLen(dx, dy);
-			const l = n.pathLen; // cache된 값
+			const l = n.pathLen; // Note.
 			if (l === null) {
 				this.minLen = null;
 				this.maxLen = null;

@@ -1,4 +1,4 @@
-/*  */
+/* Section. */
 export function initZoomSlider({
 	getActiveCamera,
 	getActiveControls,
@@ -8,7 +8,7 @@ export function initZoomSlider({
 	zoomSliderId = "zoomSlider",
 	zoomValueId = "zoomValue"
 }) {
-	/* 1. index.html 코드를 통해 배치한 슬라이더 오브젝트와 연결 */
+	/* Section. */
 	const zoomSlider = document.getElementById(zoomSliderId);
 	const zoomValue = document.getElementById(zoomValueId);
 	const uiZoom = document.getElementById(uiZoomId);
@@ -17,7 +17,7 @@ export function initZoomSlider({
 		throw new Error("Zoom UI elements not found. Check index.html IDs.");
 	}
 	
-	/* 2. 이벤트의 버블링(이벤트가 부모까지 전파됨)을 막음 */
+	/* Section. */
 	["pointerdown", "pointermove", "pointerup", "wheel"].forEach(ev => {
 		uiZoom.addEventListener(ev, (e) => { e.stopPropagation(); }, { passive : false });	
 	});
@@ -62,10 +62,10 @@ export function initZoomSlider({
 
 	const TOPVIEW_ZOOM_DISPLAY_BASE = 1;
 	
-	/* 3. 슬라이더와 카메라 배율 동기화 */
+	/* Section. */
 	let isProgrammaticUpdate = false;
 	
-	// 3-A. 카메라의 배율 정보로부터 슬라이더의 값을 동기화하는 함수 (배율 -> 슬라이더)
+	// Note.
 	function syncSliderFromView() {
 		const cam = getActiveCamera();
 		const ctl = getActiveControls();
@@ -95,7 +95,7 @@ export function initZoomSlider({
 		isProgrammaticUpdate = false;
 	}
 	
-	// 3-B. 슬라이더의 값으로부터 카메라의 배율 정보를 적용하는 함수 (슬라이더 -> 배율)
+	// Note.
 	function applyViewFromSlider() {
 		if (isProgrammaticUpdate) return;
 		
@@ -123,7 +123,7 @@ export function initZoomSlider({
 		syncSliderFromView();
 	}
 	
-	/* 4. 6-E의 동기화 함수를 각 이벤트 리스너를 통해 오브젝트와 연결 */
+	/* Section. */
 	zoomSlider.addEventListener("input", applyViewFromSlider);
 	
 	mainControls.addEventListener("change", () => {
@@ -134,9 +134,9 @@ export function initZoomSlider({
 		if (getActiveControls() == topviewControls) syncSliderFromView();	
 	})
 	
-	/* 5. 초기 동기화 */
+	/* Section. */
 	syncSliderFromView();
 	
-	/* 6. 함수 반환 */
+	/* Section. */
 	return { syncSliderFromView };
 }
