@@ -346,6 +346,24 @@ export function applyDesignToScene(scene, design, opts = {}) {
 		return out;
 	}
 
+	function sameGridNodeCoord(a, b) {
+		if (!a || !b) return false;
+		return Number(a.layer) === Number(b.layer) &&
+			Number(a.x) === Number(b.x) &&
+			Number(a.y) === Number(b.y);
+	}
+
+	function shouldSkipManualBreakSegment(net, aNode, bNode) {
+		const br = net?.__manualRouteBreak;
+		if (!br) return false;
+		const tip = br.tip;
+		const reconnect = br.reconnect;
+		if (!tip || !reconnect) return false;
+		const direct = sameGridNodeCoord(aNode, tip) && sameGridNodeCoord(bNode, reconnect);
+		const reverse = sameGridNodeCoord(aNode, reconnect) && sameGridNodeCoord(bNode, tip);
+		return direct || reverse;
+	}
+
 	function flushMergedLineRun(layerIndex, points, colorStr, colorObj, nid) {
 		if (!Array.isArray(points) || points.length < 2) return;
 		if (layerIndex < 0 || layerIndex >= layerGroups.length) return;
@@ -367,6 +385,8 @@ export function applyDesignToScene(scene, design, opts = {}) {
 
 		for (const n of g.nets) {
 			if (!n.enabled) continue;
+			// Draw net line only for explicit routed paths; never auto-connect start/end.
+			if (!Array.isArray(n.path) || n.path.length === 0) continue;
 
 			const p = n.points();
 			if (p.length < 2) continue;
@@ -375,7 +395,14 @@ export function applyDesignToScene(scene, design, opts = {}) {
 			let seg = [nodeToWorld(p[0], zLift)];
 
 			for (let i = 1; i < p.length; i++) {
+				const prevNode = p[i - 1];
 				const node = p[i];
+				if (shouldSkipManualBreakSegment(n, prevNode, node)) {
+					flushMergedLineRun(curL, seg, colorStr, color, n.nid);
+					curL = node.layer;
+					seg = [nodeToWorld(node, zLift)];
+					continue;
+				}
 
 				if (node.layer !== curL) {
 					flushMergedLineRun(curL, seg, colorStr, color, n.nid);
@@ -500,12 +527,15 @@ function pushUnique(map, colorStr, key, payload) {
 						continue; // Note.
 					}
 
+					const rawViaRadius = Number(cur?.meta?.radius);
+					const viaNodeRadius = (Number.isFinite(rawViaRadius) && rawViaRadius > 0) ? rawViaRadius : viaRadius;
 					const vk = viaKey(cur.x, cur.y, a, b);
 					pushUnique(viaByColor, c, vk, {
 						x : cur.x,
 						y : cur.y,
 						a,
 						b,
+						radius : viaNodeRadius,
 					});
 					addComponentNet(vk, n.nid);
 					addComponentNet(`viaRing:${a}:${cur.x}:${cur.y}`, n.nid);
@@ -532,36 +562,54 @@ function pushUnique(map, colorStr, key, payload) {
 		for (const [L, nodes] of byLayer.entries()) {
 			if (nodes.length === 0) continue;
 
-			const geom = new THREE.CircleGeometry(bumpRadius, diskSegments);
-			const mat = new THREE.MeshBasicMaterial({
-				color : new THREE.Color(colorStr),
-				transparent : false,
-				opacity : 1.0,
-				side : THREE.DoubleSide,
-				depthTest : true,
-				depthWrite : true,
-				polygonOffset : true,
-				polygonOffsetFactor : -1,
-				polygonOffsetUnits : -1,
-			});
-
-			const inst = new THREE.InstancedMesh(geom, mat, nodes.length);
-
-			const M = new THREE.Matrix4();
-			const Q = new THREE.Quaternion();
-			const S = new THREE.Vector3(1, 1, 1);
-
-			for (let i = 0; i < nodes.length; i++) {
-				const p = nodeToWorld(nodes[i], diskZ);
-				M.compose(p, Q, S);
-				inst.setMatrixAt(i, M);
+			const radiusBuckets = new Map();
+			for (const node of nodes) {
+				const rawRadius = Number(node?.meta?.radius);
+				const radius = (Number.isFinite(rawRadius) && rawRadius > 0) ? rawRadius : bumpRadius;
+				const radiusKey = radius.toFixed(6);
+				let bucket = radiusBuckets.get(radiusKey);
+				if (!bucket) {
+					bucket = { radius, nodes : [] };
+					radiusBuckets.set(radiusKey, bucket);
+				}
+				bucket.nodes.push(node);
 			}
 
-			inst.instanceMatrix.needsUpdate = true;
-			inst.name = `bumpDisks:L${L}:${colorStr}`;
-			inst.renderOrder = 30;
-			inst.userData.pickKeys = nodes.map((node) => `bump:${nodeKey(node)}`);
-			layerGroups[L].add(inst);
+			for (const bucket of radiusBuckets.values()) {
+				const bucketNodes = bucket.nodes;
+				if (!Array.isArray(bucketNodes) || bucketNodes.length === 0) continue;
+
+				const geom = new THREE.CircleGeometry(bucket.radius, diskSegments);
+				const mat = new THREE.MeshBasicMaterial({
+					color : new THREE.Color(colorStr),
+					transparent : false,
+					opacity : 1.0,
+					side : THREE.DoubleSide,
+					depthTest : true,
+					depthWrite : true,
+					polygonOffset : true,
+					polygonOffsetFactor : -1,
+					polygonOffsetUnits : -1,
+				});
+
+				const inst = new THREE.InstancedMesh(geom, mat, bucketNodes.length);
+
+				const M = new THREE.Matrix4();
+				const Q = new THREE.Quaternion();
+				const S = new THREE.Vector3(1, 1, 1);
+
+				for (let i = 0; i < bucketNodes.length; i++) {
+					const p = nodeToWorld(bucketNodes[i], diskZ);
+					M.compose(p, Q, S);
+					inst.setMatrixAt(i, M);
+				}
+
+				inst.instanceMatrix.needsUpdate = true;
+				inst.name = `bumpDisks:L${L}:${colorStr}`;
+				inst.renderOrder = 30;
+				inst.userData.pickKeys = bucketNodes.map((node) => `bump:${nodeKey(node)}`);
+				layerGroups[L].add(inst);
+			}
 		}
 	}
 
@@ -582,36 +630,54 @@ function pushUnique(map, colorStr, key, payload) {
 		for (const [L, nodes] of byLayer.entries()) {
 			if (nodes.length === 0) continue;
 
-			const geom = new THREE.CircleGeometry(tsvRadius, diskSegments);
-			const mat = new THREE.MeshBasicMaterial({
-				color : new THREE.Color(colorStr),
-				transparent : false,
-				opacity : 1.0,
-				side : THREE.DoubleSide,
-				depthTest : true,
-				depthWrite : true,
-				polygonOffset : true,
-				polygonOffsetFactor : -1,
-				polygonOffsetUnits : -1,
-			});
-
-			const inst = new THREE.InstancedMesh(geom, mat, nodes.length);
-
-			const M = new THREE.Matrix4();
-			const Q = new THREE.Quaternion();
-			const S = new THREE.Vector3(1, 1, 1);
-
-			for (let i = 0; i < nodes.length; i++) {
-				const p = nodeToWorld(nodes[i], diskZ);
-				M.compose(p, Q, S);
-				inst.setMatrixAt(i, M);
+			const radiusBuckets = new Map();
+			for (const node of nodes) {
+				const rawRadius = Number(node?.meta?.radius);
+				const radius = (Number.isFinite(rawRadius) && rawRadius > 0) ? rawRadius : tsvRadius;
+				const radiusKey = radius.toFixed(6);
+				let bucket = radiusBuckets.get(radiusKey);
+				if (!bucket) {
+					bucket = { radius, nodes : [] };
+					radiusBuckets.set(radiusKey, bucket);
+				}
+				bucket.nodes.push(node);
 			}
 
-			inst.instanceMatrix.needsUpdate = true;
-			inst.name = `tsvDisks:L${L}:${colorStr}`;
-			inst.renderOrder = 30;
-			inst.userData.pickKeys = nodes.map((node) => `tsv:${nodeKey(node)}`);
-			layerGroups[L].add(inst);
+			for (const bucket of radiusBuckets.values()) {
+				const bucketNodes = bucket.nodes;
+				if (!Array.isArray(bucketNodes) || bucketNodes.length === 0) continue;
+
+				const geom = new THREE.CircleGeometry(bucket.radius, diskSegments);
+				const mat = new THREE.MeshBasicMaterial({
+					color : new THREE.Color(colorStr),
+					transparent : false,
+					opacity : 1.0,
+					side : THREE.DoubleSide,
+					depthTest : true,
+					depthWrite : true,
+					polygonOffset : true,
+					polygonOffsetFactor : -1,
+					polygonOffsetUnits : -1,
+				});
+
+				const inst = new THREE.InstancedMesh(geom, mat, bucketNodes.length);
+
+				const M = new THREE.Matrix4();
+				const Q = new THREE.Quaternion();
+				const S = new THREE.Vector3(1, 1, 1);
+
+				for (let i = 0; i < bucketNodes.length; i++) {
+					const p = nodeToWorld(bucketNodes[i], diskZ);
+					M.compose(p, Q, S);
+					inst.setMatrixAt(i, M);
+				}
+
+				inst.instanceMatrix.needsUpdate = true;
+				inst.name = `tsvDisks:L${L}:${colorStr}`;
+				inst.renderOrder = 30;
+				inst.userData.pickKeys = bucketNodes.map((node) => `tsv:${nodeKey(node)}`);
+				layerGroups[L].add(inst);
+			}
 		}
 	}
 
@@ -664,7 +730,8 @@ function pushUnique(map, colorStr, key, payload) {
 
 			const P = new THREE.Vector3(wx, wy, midZ);
 			const height = Math.max(1e-6, h - zLift * 2); // Note.
-			const S = new THREE.Vector3(viaRadius, viaRadius, height);
+			const radius = (Number.isFinite(Number(v?.radius)) && Number(v.radius) > 0) ? Number(v.radius) : viaRadius;
+			const S = new THREE.Vector3(radius, radius, height);
 
 			M.compose(P, Q, S);
 			inst.setMatrixAt(i, M);
@@ -785,7 +852,8 @@ function pushUnique(map, colorStr, key, payload) {
 
 	const totalNetNodeCount = Array.from(colorToNodes.values()).reduce((sum, item) => sum + (item.arr?.length ?? 0), 0);
 	const maxNetNodeCount = Math.max(1, Number(opts.maxNetNodeCount ?? 12000) || 12000);
-	const renderNetNodes = (opts.showNetNodes ?? true) && totalNetNodeCount <= maxNetNodeCount;
+	// Grid node circles can clutter manual routing feedback; keep them off unless explicitly enabled.
+	const renderNetNodes = (opts.showNetNodes ?? false) && totalNetNodeCount <= maxNetNodeCount;
 	root.userData.netNodesRendered = renderNetNodes;
 	root.userData.netNodesCount = totalNetNodeCount;
 

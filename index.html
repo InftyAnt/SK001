@@ -170,6 +170,10 @@
 				<img class = "dock-icon" src = "./assets/icons/settings.svg" alt = "" />
 			</button>
 
+			<button class = "dock-btn" data-tab = "design" title = "Design" aria-label = "Design">
+				<img class = "dock-icon" src = "./assets/icons/pencil.svg" alt = "" />
+			</button>
+
 			<button class = "dock-btn" data-tab = "inspect" title = "Inspect" aria-label = "Inspect">
 				<img class = "dock-icon" src = "./assets/icons/inspect.svg" alt = "" />
 			</button>
@@ -252,6 +256,63 @@
 									<label class = "settings-row"><input id = "axisTopX" type = "checkbox" /><span>X</span></label>
 									<label class = "settings-row"><input id = "axisTopY" type = "checkbox" /><span>Y</span></label>
 									<label class = "settings-row"><input id = "axisTopZ" type = "checkbox" /><span>Z</span></label>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class = "tab-content" data-tab = "design" hidden>
+						<div class = "section-title">
+							Design Tools
+						</div>
+
+						<div class = "section-body">
+							<div class = "settings-card route-tool-card">
+								<div class = "settings-title">Manual Routing</div>
+								<div class = "route-mode-switch" role = "group" aria-label = "Design tool mode">
+									<button
+										id = "designModeSelectBtn"
+										class = "route-mode-btn"
+										type = "button"
+										aria-label = "Pointer mode"
+										title = "Pointer mode"
+									>
+										<svg class = "route-mode-icon" viewBox = "0 0 24 24" aria-hidden = "true">
+											<path d = "M4.5 3.5L11.8 20.5L14 14.2L20.5 12L4.5 3.5Z" />
+										</svg>
+										<span>Pointer</span>
+									</button>
+									<button
+										id = "designModeRouteBtn"
+										class = "route-mode-btn"
+										type = "button"
+										aria-label = "Routing mode"
+										title = "Routing mode"
+									>
+										<img class = "route-mode-icon" src = "./assets/icons/pencil.svg" alt = "" />
+										<span>Route</span>
+									</button>
+								</div>
+								<input id = "manualRouteMode" type = "checkbox" hidden aria-hidden = "true" tabindex = "-1" />
+								<div id = "manualRouteStatus" class = "route-tool-status" aria-live = "polite">
+									Mode Off. Enable Manual Routing to edit.
+								</div>
+								<div class = "route-tool-actions">
+									<button id = "manualRouteCancelBtn" class = "route-tool-btn" type = "button" disabled>
+										Clear Endpoint
+									</button>
+								</div>
+							</div>
+
+							<div class = "settings-card design-net-card">
+								<div class = "settings-title">Net Creator</div>
+								<div class = "design-launch-text">
+									Open the central window to create a new net and set bump/TSV/via nodes.
+								</div>
+								<div class = "design-actions">
+									<button id = "designNetOpenBtn" class = "design-create-btn" type = "button">
+										Open Net Creator
+									</button>
 								</div>
 							</div>
 						</div>
@@ -346,6 +407,120 @@
 				<div class = "modal-actions">
 					<button id = "newSceneCancelBtn" class = "modal-btn" type = "button">Cancel</button>
 					<button id = "newSceneCreateBtn" class = "modal-btn primary" type = "button">Create Empty Scene</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id = "designNetModal" class = "modal-overlay" hidden aria-hidden = "true">
+		<div class = "modal-backdrop" data-role = "design-net-close"></div>
+		<div class = "modal-card design-net-modal-card" role = "dialog" aria-modal = "true" aria-labelledby = "designNetModalTitle">
+			<div class = "modal-head">
+				<div id = "designNetModalTitle" class = "modal-title">Create Net</div>
+				<button id = "designNetCloseBtn" class = "modal-close-btn" type = "button" aria-label = "Close">
+					&times;
+				</button>
+			</div>
+
+			<div class = "modal-body">
+				<div class = "modal-group">
+					<div class = "modal-group-title">Target</div>
+					<label class = "modal-row">
+						<span>Target Group</span>
+						<select id = "designNetGroupSelect" class = "design-input"></select>
+					</label>
+					<label class = "settings-row design-checkbox-row">
+						<input id = "designNetCreateGroup" type = "checkbox" />
+						<span>Create New Group</span>
+					</label>
+					<label class = "modal-row">
+						<span>New Group ID</span>
+						<input id = "designNetNewGroupId" class = "design-input" type = "text" placeholder = "G_NEW" />
+					</label>
+					<label class = "modal-row">
+						<span>New Group Name</span>
+						<input id = "designNetNewGroupName" class = "design-input" type = "text" placeholder = "New Group" />
+					</label>
+					<label class = "modal-row">
+						<span>New Group Color</span>
+						<input id = "designNetNewGroupColor" class = "design-input design-color-input" type = "color" value = "#66ccff" />
+					</label>
+				</div>
+
+				<div class = "modal-group">
+					<div class = "modal-group-title">Net</div>
+					<label class = "modal-row">
+						<span>Net ID</span>
+						<input id = "designNetId" class = "design-input" type = "text" placeholder = "N_NEW" />
+					</label>
+					<label class = "modal-row">
+						<span>Net Name</span>
+						<input id = "designNetName" class = "design-input" type = "text" placeholder = "Optional name" />
+					</label>
+					<label class = "settings-row design-checkbox-row">
+						<input id = "designNetEnabled" type = "checkbox" checked />
+						<span>Enabled</span>
+					</label>
+				</div>
+
+				<div class = "modal-group">
+					<div class = "modal-group-title">Nodes</div>
+					<label class = "modal-row">
+						<span>Start Node</span>
+						<input id = "designNetStartSpec" class = "design-input" type = "text" value = "bump 0 0 0" />
+					</label>
+					<label class = "modal-row">
+						<span>Start Radius</span>
+						<input id = "designNetStartRadius" class = "design-input" type = "text" inputmode = "decimal" placeholder = "Optional" />
+					</label>
+					<label class = "modal-row">
+						<span>End Node</span>
+						<input id = "designNetEndSpec" class = "design-input" type = "text" value = "bump 1 1 0" />
+					</label>
+					<label class = "modal-row">
+						<span>End Radius</span>
+						<input id = "designNetEndRadius" class = "design-input" type = "text" inputmode = "decimal" placeholder = "Optional" />
+					</label>
+					<label class = "modal-row modal-row-top">
+						<span>Path Nodes</span>
+						<textarea id = "designNetPathInput" class = "design-textarea" rows = "6" placeholder = "Optional, one node per line&#10;Format: type x y layer&#10;Example:&#10;grid 1 0 0&#10;via 1 0 1"></textarea>
+					</label>
+					<div class = "design-hint">
+						Use node types: <code>bump</code>, <code>tsv</code>, <code>via</code>, <code>grid</code>.
+					</div>
+				</div>
+			</div>
+
+			<div class = "modal-foot">
+				<div id = "designNetCreateMsg" class = "design-msg" aria-live = "polite"></div>
+				<div class = "modal-actions">
+					<button id = "designNetCancelBtn" class = "modal-btn" type = "button">Cancel</button>
+					<button id = "designNetCreateBtn" class = "modal-btn primary" type = "button">Create Net</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id = "deleteConfirmModal" class = "modal-overlay" hidden aria-hidden = "true">
+		<div class = "modal-backdrop" data-role = "delete-confirm-close"></div>
+		<div class = "modal-card delete-confirm-modal-card" role = "dialog" aria-modal = "true" aria-labelledby = "deleteConfirmTitle">
+			<div class = "modal-head">
+				<div id = "deleteConfirmTitle" class = "modal-title">Confirm Delete</div>
+				<button id = "deleteConfirmCloseBtn" class = "modal-close-btn" type = "button" aria-label = "Close">
+					&times;
+				</button>
+			</div>
+
+			<div class = "modal-body">
+				<div id = "deleteConfirmMessage" class = "delete-confirm-message">
+					Are you sure you want to delete this item?
+				</div>
+			</div>
+
+			<div class = "modal-foot">
+				<div class = "modal-actions">
+					<button id = "deleteConfirmCancelBtn" class = "modal-btn" type = "button">Cancel</button>
+					<button id = "deleteConfirmConfirmBtn" class = "modal-btn danger" type = "button">Delete</button>
 				</div>
 			</div>
 		</div>

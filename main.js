@@ -6,6 +6,7 @@ import { initSidePanels } from './uipanels.js';
 import { initDataFilesUI } from './datafiles.js';
 import { parseDesignText, serializeDesignText } from './parser.js';
 import { applyDesignToScene, updateDesignStyleInScene } from './scene.js';
+import { Node, Net, Group, NodeType, Tristate } from './path.js';
 
 THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
@@ -799,6 +800,8 @@ function setActiveSceneById(id) {
 	renderGroupTree();
 	syncLayerStyleControls();
 	syncSelectedNetForActiveScene();
+	clearManualRoutePending("");
+	closeDeleteConfirmModal();
 }
 
 async function addTextFilesAsScenes(files) {
@@ -949,6 +952,17 @@ async function saveTextWithPicker(filename, text) {
 	return true;
 }
 
+function stripLegacyManualRouteBreakMeta(design) {
+	if (!design || !Array.isArray(design.groups)) return;
+	for (const g of design.groups) {
+		for (const n of (g?.nets ?? [])) {
+			if (!n?.meta || typeof n.meta !== "object") continue;
+			if (!Object.prototype.hasOwnProperty.call(n.meta, "manualRouteBreak")) continue;
+			delete n.meta.manualRouteBreak;
+		}
+	}
+}
+
 async function saveActiveSceneAsText() {
 	const ctx = scenes.get(activeSceneId);
 	const design = ctx?.design;
@@ -959,6 +973,7 @@ async function saveActiveSceneAsText() {
 
 	let text = "";
 	try {
+		stripLegacyManualRouteBreakMeta(design);
 		text = serializeDesignText(design);
 	} catch (err) {
 		console.error("[serialize failed]", err);
@@ -994,6 +1009,36 @@ const gridColorInputEl = document.getElementById("gridColorInput");
 const gridOpacityInputEl = document.getElementById("gridOpacityInput");
 const gridOpacityValueEl = document.getElementById("gridOpacityValue");
 const netInfoPanelEl = document.getElementById("netInfoPanel");
+const manualRouteModeEl = document.getElementById("manualRouteMode");
+const manualRouteCancelBtnEl = document.getElementById("manualRouteCancelBtn");
+const manualRouteStatusEl = document.getElementById("manualRouteStatus");
+const designModeSelectBtnEl = document.getElementById("designModeSelectBtn");
+const designModeRouteBtnEl = document.getElementById("designModeRouteBtn");
+const designNetOpenBtnEl = document.getElementById("designNetOpenBtn");
+const designNetModalEl = document.getElementById("designNetModal");
+const designNetCloseBtnEl = document.getElementById("designNetCloseBtn");
+const designNetCancelBtnEl = document.getElementById("designNetCancelBtn");
+const designNetGroupSelectEl = document.getElementById("designNetGroupSelect");
+const designNetCreateGroupEl = document.getElementById("designNetCreateGroup");
+const designNetNewGroupIdEl = document.getElementById("designNetNewGroupId");
+const designNetNewGroupNameEl = document.getElementById("designNetNewGroupName");
+const designNetNewGroupColorEl = document.getElementById("designNetNewGroupColor");
+const designNetIdEl = document.getElementById("designNetId");
+const designNetNameEl = document.getElementById("designNetName");
+const designNetEnabledEl = document.getElementById("designNetEnabled");
+const designNetStartSpecEl = document.getElementById("designNetStartSpec");
+const designNetStartRadiusEl = document.getElementById("designNetStartRadius");
+const designNetEndSpecEl = document.getElementById("designNetEndSpec");
+const designNetEndRadiusEl = document.getElementById("designNetEndRadius");
+const designNetPathInputEl = document.getElementById("designNetPathInput");
+const designNetCreateBtnEl = document.getElementById("designNetCreateBtn");
+const designNetCreateMsgEl = document.getElementById("designNetCreateMsg");
+const deleteConfirmModalEl = document.getElementById("deleteConfirmModal");
+const deleteConfirmTitleEl = document.getElementById("deleteConfirmTitle");
+const deleteConfirmMessageEl = document.getElementById("deleteConfirmMessage");
+const deleteConfirmCloseBtnEl = document.getElementById("deleteConfirmCloseBtn");
+const deleteConfirmCancelBtnEl = document.getElementById("deleteConfirmCancelBtn");
+const deleteConfirmConfirmBtnEl = document.getElementById("deleteConfirmConfirmBtn");
 const NET_INFO_EMPTY_TEXT = "No net is selected yet. Click near a net in the viewport.";
 
 function applyEnglishUiText() {
@@ -1009,6 +1054,10 @@ function applyEnglishUiText() {
 	setById("dataSaveBtn", "Save Project");
 	setById("newSceneModalTitle", "New Project");
 	setById("newSceneCreateBtn", "Create Project");
+	setById("designNetModalTitle", "Create Net");
+	setById("deleteConfirmTitle", "Confirm Delete");
+	setById("deleteConfirmCancelBtn", "Cancel");
+	setById("deleteConfirmConfirmBtn", "Delete");
 
 	const drop = document.getElementById("dataDrop");
 	if (drop) {
@@ -1029,6 +1078,22 @@ function applyEnglishUiText() {
 	if (cameraHint) cameraHint.textContent = "Select either the Main or a Layer Top camera.";
 
 	if (netInfoPanelEl) netInfoPanelEl.textContent = NET_INFO_EMPTY_TEXT;
+	const modeSelectLabel = designModeSelectBtnEl?.querySelector?.("span");
+	const modeRouteLabel = designModeRouteBtnEl?.querySelector?.("span");
+	if (modeSelectLabel) modeSelectLabel.textContent = "Pointer";
+	if (modeRouteLabel) modeRouteLabel.textContent = "Route";
+	if (designModeSelectBtnEl) {
+		designModeSelectBtnEl.title = "Pointer mode";
+		designModeSelectBtnEl.setAttribute("aria-label", "Pointer mode");
+	}
+	if (designModeRouteBtnEl) {
+		designModeRouteBtnEl.title = "Routing mode";
+		designModeRouteBtnEl.setAttribute("aria-label", "Routing mode");
+	}
+	setById("manualRouteCancelBtn", "Clear Selection");
+	setById("designNetOpenBtn", "Open Net Creator");
+	setById("designNetCreateBtn", "Create Net");
+	setById("designNetCancelBtn", "Cancel");
 }
 
 applyEnglishUiText();
@@ -1059,8 +1124,23 @@ const topGridHoverRaycaster = new THREE.Raycaster();
 const topGridHoverNdc = new THREE.Vector2();
 const topGridHoverPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
 const topGridHoverHit = new THREE.Vector3();
+const topGridPickWorld = new THREE.Vector3();
+const topGridPickNode = { layer : 0, x : 0, y : 0 };
 const topGridHoverRadiusKey = "topGridHoverRadius";
 const topGridHoverMeshKey = "topGridHoverMesh";
+const manualRouteCandidateRadiusKey = "manualRouteCandidateRadius";
+const manualRouteCandidateMeshKey = "manualRouteCandidateMesh";
+const manualRouteCandidateTransform = new THREE.Object3D();
+const manualRouteState = {
+	enabled : false,
+	pending : null,
+	statusMessage : "",
+};
+const MANUAL_ROUTE_SIDE_START = 1;
+const MANUAL_ROUTE_SIDE_END = 2;
+const deleteConfirmState = {
+	pending : null,
+};
 
 function clamp01(v) {
 	return Math.min(1, Math.max(0, v));
@@ -1106,6 +1186,185 @@ function ensureTopGridHoverMesh(scene, radius) {
 	return mesh;
 }
 
+function getManualRouteCandidateMesh(scene) {
+	return scene?.userData?.[manualRouteCandidateMeshKey] ?? null;
+}
+
+function setManualRouteCandidateVisible(scene, visible) {
+	const mesh = getManualRouteCandidateMesh(scene);
+	if (!mesh) return;
+	if (!visible) mesh.count = 0;
+	mesh.visible = !!visible;
+}
+
+function ensureManualRouteCandidateMesh(scene, radius) {
+	if (!scene || !Number.isFinite(radius) || radius <= 0) return null;
+	const current = getManualRouteCandidateMesh(scene);
+	const currentRadius = Number(scene.userData?.[manualRouteCandidateRadiusKey]);
+	if (current && Math.abs(currentRadius - radius) <= 1e-9) return current;
+
+	if (current) {
+		if (current.parent) current.parent.remove(current);
+		current.geometry?.dispose?.();
+		current.material?.dispose?.();
+	}
+
+	const outer = radius;
+	const inner = radius * 0.62;
+	const geom = new THREE.RingGeometry(inner, outer, 32);
+	const mat = new THREE.MeshBasicMaterial({
+		color : 0xffbd8a,
+		transparent : true,
+		opacity : 0.96,
+		depthTest : false,
+		depthWrite : false,
+		side : THREE.DoubleSide,
+	});
+	const mesh = new THREE.InstancedMesh(geom, mat, 8);
+	mesh.name = "manualRouteCandidates";
+	mesh.renderOrder = 2996;
+	mesh.visible = false;
+	mesh.count = 0;
+	mesh.frustumCulled = false;
+	mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+	mesh.raycast = () => {};
+	scene.add(mesh);
+	scene.userData[manualRouteCandidateMeshKey] = mesh;
+	scene.userData[manualRouteCandidateRadiusKey] = radius;
+	return mesh;
+}
+
+function updateManualRouteCandidateOverlay(activeCam) {
+	const ctx = scenes.get(activeSceneId);
+	const scene = ctx?.scene ?? null;
+	if (!scene) return;
+
+	const design = ctx?.design;
+	const pending = manualRouteState.pending;
+	if (!manualRouteState.enabled || !pending || !design || !activeCam?.isOrthographicCamera) {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+
+	const layer = Number(pending.layer);
+	const x = Number(pending.x);
+	const y = Number(pending.y);
+	const dx = Number(design.dx);
+	const dy = Number(design.dy);
+	if (!Number.isFinite(layer) || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(dx) || !Number.isFinite(dy) || dx <= 0 || dy <= 0) {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+
+	const nx = Math.max(1, Number(design.nx) | 0);
+	const ny = Math.max(1, Number(design.ny) | 0);
+	const nlayer = Math.max(1, Number(design.nlayer) | 0);
+	if (x < 0 || x >= nx || y < 0 || y >= ny || layer < 0 || layer >= nlayer) {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+
+	const minPitch = Math.min(dx, dy);
+	if (!Number.isFinite(minPitch) || minPitch <= 0) {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+
+	const layerGapRaw = Number(design.layerGap);
+	const layerGap = (Number.isFinite(layerGapRaw) && layerGapRaw > 0) ? layerGapRaw : minPitch;
+	const mesh = ensureManualRouteCandidateMesh(scene, minPitch * 0.30);
+	if (!mesh) return;
+
+	const found = findNetByNid(ctx, pending.nid);
+	const net = found?.net ?? null;
+	if (!net?.enabled) {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+	const routeState = buildManualRouteNetState(net);
+	const validateTarget = createManualRouteStepValidator(ctx, net, pending, routeState);
+	if (typeof validateTarget !== "function") {
+		setManualRouteCandidateVisible(scene, false);
+		return;
+	}
+	const x0 = (nx - 1) * dx * 0.5;
+	const y0 = (ny - 1) * dy * 0.5;
+	const wz = (layer * layerGap) + Math.max(minPitch * 1e-3, 1e-5);
+	let count = 0;
+
+	for (let oy = -1; oy <= 1; oy++) {
+		for (let ox = -1; ox <= 1; ox++) {
+			if (ox === 0 && oy === 0) continue;
+			const tx = x + ox;
+			const ty = y + oy;
+			if (tx < 0 || tx >= nx || ty < 0 || ty >= ny) continue;
+
+			const verdict = validateTarget(layer, tx, ty);
+			if (!verdict?.ok) continue;
+
+			const wx = (tx * dx) - x0;
+			const wy = (ty * dy) - y0;
+			manualRouteCandidateTransform.position.set(wx, wy, wz);
+			manualRouteCandidateTransform.rotation.set(0, 0, 0);
+			manualRouteCandidateTransform.scale.set(1, 1, 1);
+			manualRouteCandidateTransform.updateMatrix();
+			mesh.setMatrixAt(count, manualRouteCandidateTransform.matrix);
+			count += 1;
+		}
+	}
+
+	mesh.count = count;
+	mesh.instanceMatrix.needsUpdate = true;
+	mesh.visible = count > 0;
+}
+
+function snapTopGridClientPointToWorld(activeCam, clientX, clientY, outWorld, rect = null, outGrid = null) {
+	if (!activeCam?.isOrthographicCamera || !outWorld) return 0;
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+	if (!design) return 0;
+
+	const dx = Number(design.dx);
+	const dy = Number(design.dy);
+	if (!Number.isFinite(dx) || !Number.isFinite(dy) || dx <= 0 || dy <= 0) return 0;
+
+	const minPitch = Math.min(dx, dy);
+	if (!Number.isFinite(minPitch) || minPitch <= 0) return 0;
+
+	const nlayer = Math.max(1, Number(design.nlayer) | 0);
+	const nx = Math.max(1, Number(design.nx) | 0);
+	const ny = Math.max(1, Number(design.ny) | 0);
+	const layerGapRaw = Number(design.layerGap);
+	const layerGap = (Number.isFinite(layerGapRaw) && layerGapRaw > 0) ? layerGapRaw : minPitch;
+	const activeLayerRaw = Number(ctx?.view?.activeLayer);
+	const layerIndex = Math.max(0, Math.min(Number.isFinite(activeLayerRaw) ? (activeLayerRaw | 0) : 0, nlayer - 1));
+
+	const viewportRect = rect ?? renderer.domElement.getBoundingClientRect();
+	if (viewportRect.width <= 0 || viewportRect.height <= 0) return 0;
+
+	const px = clientX - viewportRect.left;
+	const py = clientY - viewportRect.top;
+	topGridHoverNdc.x = (px / viewportRect.width) * 2 - 1;
+	topGridHoverNdc.y = -((py / viewportRect.height) * 2 - 1);
+
+	const layerZ = layerIndex * layerGap;
+	topGridHoverPlane.setComponents(0, 0, 1, -layerZ);
+	topGridHoverRaycaster.setFromCamera(topGridHoverNdc, activeCam);
+	if (!topGridHoverRaycaster.ray.intersectPlane(topGridHoverPlane, topGridHoverHit)) return 0;
+
+	const x0 = (nx - 1) * dx * 0.5;
+	const y0 = (ny - 1) * dy * 0.5;
+	const gx = Math.max(0, Math.min(nx - 1, Math.round((topGridHoverHit.x + x0) / dx)));
+	const gy = Math.max(0, Math.min(ny - 1, Math.round((topGridHoverHit.y + y0) / dy)));
+	outWorld.set((gx * dx) - x0, (gy * dy) - y0, layerZ);
+	if (outGrid) {
+		outGrid.layer = layerIndex;
+		outGrid.x = gx;
+		outGrid.y = gy;
+	}
+	return minPitch;
+}
+
 function updateTopGridHoverIndicator(activeCam) {
 	const ctx = scenes.get(activeSceneId);
 	const scene = ctx?.scene ?? null;
@@ -1120,57 +1379,15 @@ function updateTopGridHoverIndicator(activeCam) {
 		return;
 	}
 
-	const design = ctx.design;
-	const dx = Number(design.dx);
-	const dy = Number(design.dy);
-	if (!Number.isFinite(dx) || !Number.isFinite(dy) || dx <= 0 || dy <= 0) {
+	const minPitch = snapTopGridClientPointToWorld(activeCam, topGridHoverPointer.clientX, topGridHoverPointer.clientY, topGridHoverHit);
+	if (!(minPitch > 0)) {
 		setTopGridHoverVisible(scene, false);
 		return;
 	}
-
-	const minPitch = Math.min(dx, dy);
-	if (!Number.isFinite(minPitch) || minPitch <= 0) {
-		setTopGridHoverVisible(scene, false);
-		return;
-	}
-
-	const nlayer = Math.max(1, Number(design.nlayer) | 0);
-	const nx = Math.max(1, Number(design.nx) | 0);
-	const ny = Math.max(1, Number(design.ny) | 0);
-	const layerGapRaw = Number(design.layerGap);
-	const layerGap = (Number.isFinite(layerGapRaw) && layerGapRaw > 0) ? layerGapRaw : minPitch;
-	const activeLayerRaw = Number(ctx?.view?.activeLayer);
-	const layerIndex = Math.max(0, Math.min(Number.isFinite(activeLayerRaw) ? (activeLayerRaw | 0) : 0, nlayer - 1));
-
-	const rect = renderer.domElement.getBoundingClientRect();
-	if (rect.width <= 0 || rect.height <= 0) {
-		setTopGridHoverVisible(scene, false);
-		return;
-	}
-
-	const px = topGridHoverPointer.clientX - rect.left;
-	const py = topGridHoverPointer.clientY - rect.top;
-	topGridHoverNdc.x = (px / rect.width) * 2 - 1;
-	topGridHoverNdc.y = -((py / rect.height) * 2 - 1);
-
-	const layerZ = layerIndex * layerGap;
-	topGridHoverPlane.setComponents(0, 0, 1, -layerZ);
-	topGridHoverRaycaster.setFromCamera(topGridHoverNdc, activeCam);
-	if (!topGridHoverRaycaster.ray.intersectPlane(topGridHoverPlane, topGridHoverHit)) {
-		setTopGridHoverVisible(scene, false);
-		return;
-	}
-
-	const x0 = (nx - 1) * dx * 0.5;
-	const y0 = (ny - 1) * dy * 0.5;
-	const gx = Math.max(0, Math.min(nx - 1, Math.round((topGridHoverHit.x + x0) / dx)));
-	const gy = Math.max(0, Math.min(ny - 1, Math.round((topGridHoverHit.y + y0) / dy)));
-	const wx = gx * dx - x0;
-	const wy = gy * dy - y0;
 
 	const mesh = ensureTopGridHoverMesh(scene, minPitch * 0.2);
 	if (!mesh) return;
-	mesh.position.set(wx, wy, layerZ + Math.max(minPitch * 1e-3, 1e-5));
+	mesh.position.set(topGridHoverHit.x, topGridHoverHit.y, topGridHoverHit.z + Math.max(minPitch * 1e-3, 1e-5));
 	mesh.visible = true;
 }
 
@@ -1411,6 +1628,7 @@ function syncLayerStyleControls() {
 	if (!layerColorInputEl || !layerOpacityInputEl || !layerOpacityValueEl || !gridColorInputEl || !gridOpacityInputEl || !gridOpacityValueEl) return;
 	const ctx = scenes.get(activeSceneId);
 	const hasDesign = !!ctx?.design;
+	if (!hasDesign) setManualRouteEnabled(false);
 	layerColorInputEl.disabled = !hasDesign;
 	layerOpacityInputEl.disabled = !hasDesign;
 	gridColorInputEl.disabled = !hasDesign;
@@ -1423,6 +1641,8 @@ function syncLayerStyleControls() {
 		gridColorInputEl.value = "#575757";
 		gridOpacityInputEl.value = "0.32";
 		gridOpacityValueEl.textContent = "0.32";
+		syncManualRouteUi();
+		syncDesignNetBuilderUi();
 		return;
 	}
 	if (!ctx.ui) ctx.ui = {};
@@ -1433,6 +1653,8 @@ function syncLayerStyleControls() {
 	gridColorInputEl.value = ctx.ui.layerStyle.gridLineColor ?? "#575757";
 	gridOpacityInputEl.value = String(ctx.ui.layerStyle.gridLineOpacity ?? 0.32);
 	gridOpacityValueEl.textContent = Number(ctx.ui.layerStyle.gridLineOpacity ?? 0.32).toFixed(2);
+	syncManualRouteUi();
+	syncDesignNetBuilderUi();
 }
 
 
@@ -1849,8 +2071,17 @@ function resolveHitCandidateNids(hit) {
 function pickNearestNetFromClick(clientX, clientY) {
 	if (!activeScene || !camera) return null;
 	const rect = renderer.domElement.getBoundingClientRect();
-	const px = clientX - rect.left;
-	const pyRaw = clientY - rect.top;
+	let pickClientX = clientX;
+	let pickClientY = clientY;
+	const minPitch = snapTopGridClientPointToWorld(camera, clientX, clientY, topGridPickWorld, rect);
+	if (minPitch > 0) {
+		worldToScreen(topGridPickWorld, camera, rect, tmpScreenA);
+		pickClientX = rect.left + tmpScreenA.x;
+		pickClientY = rect.top + tmpScreenA.y;
+	}
+
+	const px = pickClientX - rect.left;
+	const pyRaw = pickClientY - rect.top;
 	const py = shouldFlipMainViewportY() ? (rect.height - pyRaw) : pyRaw;
 	pickNdc.x = (px / rect.width) * 2 - 1;
 	pickNdc.y = -((py / rect.height) * 2 - 1);
@@ -1862,7 +2093,7 @@ function pickNearestNetFromClick(clientX, clientY) {
 		const nids = resolveHitCandidateNids(hit);
 		if (!nids || nids.size === 0) continue;
 		if (nids.size === 1) return [...nids][0];
-		const nearest = findNearestNetNidAtClientPoint(clientX, clientY, nids);
+		const nearest = findNearestNetNidAtClientPoint(pickClientX, pickClientY, nids);
 		if (nearest) return nearest;
 	}
 
@@ -1900,6 +2131,1067 @@ function findNetByNid(ctx, nid) {
 		}
 	}
 	return null;
+}
+
+function toGridPointKey(layer, x, y) {
+	return `${layer}:${x}:${y}`;
+}
+
+function isNodeAtGridPoint(node, layer, x, y) {
+	if (!node) return false;
+	const nx = Number(node.x);
+	const ny = Number(node.y);
+	const nl = Number(node.layer);
+	return Number.isFinite(nx) &&
+		Number.isFinite(ny) &&
+		Number.isFinite(nl) &&
+		nx === Number(x) &&
+		ny === Number(y) &&
+		nl === Number(layer);
+}
+
+function getNetRoutingTipNode(net, side) {
+	if (!net) return null;
+	const br = getNetManualRouteBreakMeta(net);
+	if (br) {
+		if (side === "start") return (br.side === "start") ? br.tip : br.reconnect;
+		if (side === "end") return (br.side === "end") ? br.tip : br.reconnect;
+	}
+	const path = Array.isArray(net.path) ? net.path : null;
+	if (!path || path.length === 0) {
+		return (side === "start") ? net.start : net.end;
+	}
+	return (side === "start") ? path[0] : path[path.length - 1];
+}
+
+function getNetPointsForRouting(net) {
+	if (!net) return [];
+	if (typeof net.points === "function") {
+		const pts = net.points();
+		if (Array.isArray(pts)) return pts;
+	}
+	const out = [];
+	if (net.start) out.push(net.start);
+	if (Array.isArray(net.path)) out.push(...net.path);
+	if (net.end) out.push(net.end);
+	return out;
+}
+
+function buildOccupiedGridPointNetOwnersMap(ctx) {
+	const out = new Map();
+	const design = ctx?.design;
+	if (!design) return out;
+
+	for (const g of (design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			const sid = String(n?.nid ?? "");
+			if (!sid) continue;
+			for (const p of getNetPointsForRouting(n)) {
+				const x = Number(p?.x);
+				const y = Number(p?.y);
+				const layer = Number(p?.layer);
+				if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(layer)) continue;
+				const key = toGridPointKey(layer, x, y);
+				let set = out.get(key);
+				if (!set) {
+					set = new Set();
+					out.set(key, set);
+				}
+				set.add(sid);
+			}
+		}
+	}
+
+	return out;
+}
+
+function toDiagonalCellKey(layer, cellX, cellY) {
+	return `${layer}:${cellX}:${cellY}`;
+}
+
+function getDiagonalCellOrientation(fromX, fromY, toX, toY) {
+	const dx = Number(toX) - Number(fromX);
+	const dy = Number(toY) - Number(fromY);
+	if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
+	if (Math.abs(dx) !== 1 || Math.abs(dy) !== 1) return null;
+	return (dx === dy) ? "backslash" : "slash";
+}
+
+function buildDiagonalCellOccupancyMap(ctx) {
+	const out = new Map();
+	const design = ctx?.design;
+	if (!design) return out;
+
+	for (const g of (design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			const path = Array.isArray(n?.path) ? n.path : null;
+			// Only explicit routed segments should reserve diagonal cells.
+			if (!path || path.length === 0) continue;
+			const points = getNetPointsForRouting(n);
+			if (!Array.isArray(points) || points.length < 2) continue;
+
+			for (let i = 1; i < points.length; i++) {
+				const a = points[i - 1];
+				const b = points[i];
+				if (isManualRouteBreakSegment(n, a, b)) continue;
+				const ax = Number(a?.x);
+				const ay = Number(a?.y);
+				const al = Number(a?.layer);
+				const bx = Number(b?.x);
+				const by = Number(b?.y);
+				const bl = Number(b?.layer);
+				if (!Number.isFinite(ax) || !Number.isFinite(ay) || !Number.isFinite(al) ||
+					!Number.isFinite(bx) || !Number.isFinite(by) || !Number.isFinite(bl)) {
+					continue;
+				}
+				if (al !== bl) continue;
+
+				const orient = getDiagonalCellOrientation(ax, ay, bx, by);
+				if (!orient) continue;
+				const cellX = Math.min(ax, bx);
+				const cellY = Math.min(ay, by);
+				const key = toDiagonalCellKey(al, cellX, cellY);
+				let set = out.get(key);
+				if (!set) {
+					set = new Set();
+					out.set(key, set);
+				}
+				set.add(orient);
+			}
+		}
+	}
+
+	return out;
+}
+
+function isDiagonalStepBlockedByOccupiedCell(diagonalMap, layer, fromX, fromY, toX, toY) {
+	if (!(diagonalMap instanceof Map)) return false;
+	const orient = getDiagonalCellOrientation(fromX, fromY, toX, toY);
+	if (!orient) return false;
+	const opposite = (orient === "backslash") ? "slash" : "backslash";
+	const cellX = Math.min(Number(fromX), Number(toX));
+	const cellY = Math.min(Number(fromY), Number(toY));
+	const key = toDiagonalCellKey(Number(layer), cellX, cellY);
+	const occupied = diagonalMap.get(key);
+	return !!occupied?.has?.(opposite);
+}
+
+function toManualRouteNodeCoord(node) {
+	const layer = Number(node?.layer);
+	const x = Number(node?.x);
+	const y = Number(node?.y);
+	if (!Number.isFinite(layer) || !Number.isFinite(x) || !Number.isFinite(y)) return null;
+	return { layer, x, y };
+}
+
+function clearNetManualRouteBreakMeta(net) {
+	if (!net) return false;
+	let changed = false;
+	if (Object.prototype.hasOwnProperty.call(net, "__manualRouteBreak")) {
+		delete net.__manualRouteBreak;
+		changed = true;
+	}
+	// Legacy cleanup: stop persisting transient routing metadata into file-save path.
+	if (net.meta && typeof net.meta === "object" && Object.prototype.hasOwnProperty.call(net.meta, "manualRouteBreak")) {
+		delete net.meta.manualRouteBreak;
+		changed = true;
+	}
+	return changed;
+}
+
+function getNetManualRouteBreakMeta(net) {
+	const raw = net?.__manualRouteBreak;
+	if (!raw || typeof raw !== "object") return null;
+	const side = (raw.side === "start" || raw.side === "end") ? raw.side : null;
+	const tip = toManualRouteNodeCoord(raw.tip);
+	const reconnect = toManualRouteNodeCoord(raw.reconnect);
+	if (!side || !tip || !reconnect) return null;
+	return { side, tip, reconnect };
+}
+
+function isManualRouteBreakSegment(net, aNode, bNode) {
+	const br = getNetManualRouteBreakMeta(net);
+	if (!br) return false;
+	const tip = br.tip;
+	const reconnect = br.reconnect;
+	const direct =
+		isNodeAtGridPoint(aNode, tip.layer, tip.x, tip.y) &&
+		isNodeAtGridPoint(bNode, reconnect.layer, reconnect.x, reconnect.y);
+	if (direct) return true;
+	const reverse =
+		isNodeAtGridPoint(aNode, reconnect.layer, reconnect.x, reconnect.y) &&
+		isNodeAtGridPoint(bNode, tip.layer, tip.x, tip.y);
+	return reverse;
+}
+
+function getManualRouteSideMask(side) {
+	return (side === "end") ? MANUAL_ROUTE_SIDE_END : MANUAL_ROUTE_SIDE_START;
+}
+
+function getManualRouteOppositeMask(side) {
+	return (side === "end") ? MANUAL_ROUTE_SIDE_START : MANUAL_ROUTE_SIDE_END;
+}
+
+function findManualRoutePointIndices(points, layer, x, y) {
+	const out = [];
+	if (!Array.isArray(points)) return out;
+	for (let i = 0; i < points.length; i++) {
+		if (isNodeAtGridPoint(points[i], layer, x, y)) out.push(i);
+	}
+	return out;
+}
+
+function buildManualRouteNetState(net) {
+	const points = getNetPointsForRouting(net);
+	const pointMasks = new Array(points.length).fill(0);
+	const keyMasks = new Map();
+	if (points.length === 0) return { points, pointMasks, keyMasks, breakEdge : null };
+
+	let breakEdge = null;
+	const br = getNetManualRouteBreakMeta(net);
+	if (br) {
+		for (let i = 1; i < points.length; i++) {
+			const a = points[i - 1];
+			const b = points[i];
+			if (!isManualRouteBreakSegment(net, a, b)) continue;
+			breakEdge = { a : i - 1, b : i };
+			break;
+		}
+	}
+
+	const adj = new Array(points.length);
+	for (let i = 0; i < points.length; i++) adj[i] = [];
+	for (let i = 1; i < points.length; i++) {
+		const a = i - 1;
+		const b = i;
+		if (breakEdge && breakEdge.a === a && breakEdge.b === b) continue;
+		adj[a].push(b);
+		adj[b].push(a);
+	}
+
+	const flood = (seedIndex, bit) => {
+		if (!Number.isFinite(seedIndex) || seedIndex < 0 || seedIndex >= points.length) return;
+		const q = [seedIndex];
+		const seen = new Set([seedIndex]);
+		while (q.length > 0) {
+			const idx = q.shift();
+			pointMasks[idx] |= bit;
+			for (const next of adj[idx]) {
+				if (seen.has(next)) continue;
+				seen.add(next);
+				q.push(next);
+			}
+		}
+	};
+
+	flood(0, MANUAL_ROUTE_SIDE_START);
+	flood(points.length - 1, MANUAL_ROUTE_SIDE_END);
+
+	for (let i = 0; i < points.length; i++) {
+		const p = points[i];
+		const layer = Number(p?.layer);
+		const x = Number(p?.x);
+		const y = Number(p?.y);
+		if (!Number.isFinite(layer) || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+		const key = toGridPointKey(layer, x, y);
+		const prev = Number(keyMasks.get(key) || 0);
+		keyMasks.set(key, prev | Number(pointMasks[i] || 0));
+	}
+
+	return { points, pointMasks, keyMasks, breakEdge };
+}
+
+function resolveManualRoutePendingFullIndex(routeState, pending) {
+	if (!routeState || !pending) return null;
+	const points = Array.isArray(routeState.points) ? routeState.points : [];
+	if (points.length === 0) return null;
+	const matches = findManualRoutePointIndices(points, pending.layer, pending.x, pending.y);
+	if (matches.length === 0) return null;
+
+	const sideMask = getManualRouteSideMask(pending.side);
+	const preferred = matches.filter((idx) => (Number(routeState.pointMasks?.[idx] || 0) & sideMask) !== 0);
+	const pick = (pending.side === "end") ? 0 : -1;
+	if (preferred.length > 0) return preferred[(pick < 0) ? (preferred.length - 1) : 0];
+	return matches[(pick < 0) ? (matches.length - 1) : 0];
+}
+
+function resolveManualRouteOppositePointIndex(routeState, pending, tipIndex, layer, x, y) {
+	if (!routeState || !pending || !Number.isFinite(tipIndex)) return null;
+	const points = Array.isArray(routeState.points) ? routeState.points : [];
+	if (tipIndex < 0 || tipIndex >= points.length) return null;
+
+	const oppositeMask = getManualRouteOppositeMask(pending.side);
+	const matches = findManualRoutePointIndices(points, layer, x, y);
+	if (matches.length === 0) return null;
+
+	let candidates = matches.filter((idx) => (Number(routeState.pointMasks?.[idx] || 0) & oppositeMask) !== 0);
+	if (pending.side === "start") {
+		candidates = candidates.filter((idx) => idx > tipIndex);
+		if (candidates.length === 0) return null;
+		return Math.min(...candidates);
+	}
+	candidates = candidates.filter((idx) => idx < tipIndex);
+	if (candidates.length === 0) return null;
+	return Math.max(...candidates);
+}
+
+function setNetPathFromFullPoints(net, points) {
+	if (!net) return;
+	if (!Array.isArray(points) || points.length < 2) {
+		net.path = null;
+		return;
+	}
+	const mid = points.slice(1, -1);
+	net.path = (mid.length > 0) ? mid : null;
+}
+
+function setNetManualRouteBreakMeta(net, pending) {
+	if (!net) return false;
+	if (!pending) return clearNetManualRouteBreakMeta(net);
+	const side = (pending.side === "start" || pending.side === "end") ? pending.side : null;
+	if (!side) return clearNetManualRouteBreakMeta(net);
+
+	const routeState = buildManualRouteNetState(net);
+	const tipIndex = resolveManualRoutePendingFullIndex(routeState, pending);
+	if (tipIndex === null) return clearNetManualRouteBreakMeta(net);
+
+	const reconnectIndex = (side === "start") ? (tipIndex + 1) : (tipIndex - 1);
+	if (reconnectIndex < 0 || reconnectIndex >= routeState.points.length) {
+		return clearNetManualRouteBreakMeta(net);
+	}
+
+	const tip = toManualRouteNodeCoord(routeState.points[tipIndex]);
+	const reconnect = toManualRouteNodeCoord(routeState.points[reconnectIndex]);
+	if (!tip || !reconnect) return clearNetManualRouteBreakMeta(net);
+	if (tip.layer === reconnect.layer && tip.x === reconnect.x && tip.y === reconnect.y) {
+		return clearNetManualRouteBreakMeta(net);
+	}
+
+	const prev = getNetManualRouteBreakMeta(net);
+	const same = !!prev &&
+		prev.side === side &&
+		Number(prev?.tip?.layer) === tip.layer &&
+		Number(prev?.tip?.x) === tip.x &&
+		Number(prev?.tip?.y) === tip.y &&
+		Number(prev?.reconnect?.layer) === reconnect.layer &&
+		Number(prev?.reconnect?.x) === reconnect.x &&
+		Number(prev?.reconnect?.y) === reconnect.y;
+	if (same) return false;
+
+	net.__manualRouteBreak = {
+		side,
+		tip,
+		reconnect,
+	};
+	return true;
+}
+
+function createManualRouteStepValidator(ctx, net, pending, routeState) {
+	if (!ctx?.design || !net || !pending || !routeState) return null;
+	const fromLayer = Number(pending.layer);
+	const fromX = Number(pending.x);
+	const fromY = Number(pending.y);
+	if (!Number.isFinite(fromLayer) || !Number.isFinite(fromX) || !Number.isFinite(fromY)) return null;
+
+	const tipIndex = resolveManualRoutePendingFullIndex(routeState, pending);
+	if (tipIndex === null) return null;
+	const ownNid = String(net.nid ?? "");
+	if (!ownNid) return null;
+
+	const ownersMap = buildOccupiedGridPointNetOwnersMap(ctx);
+	const diagonalCells = buildDiagonalCellOccupancyMap(ctx);
+
+	return (toLayer, toX, toY) => {
+		const layer = Number(toLayer);
+		const x = Number(toX);
+		const y = Number(toY);
+		if (!Number.isFinite(layer) || !Number.isFinite(x) || !Number.isFinite(y)) {
+			return { ok : false, reason : "Target point is invalid.", complete : false, oppositeIndex : null };
+		}
+		if (layer !== fromLayer) {
+			return { ok : false, reason : "Target must be on the same layer as the selected endpoint.", complete : false, oppositeIndex : null };
+		}
+
+		const dx = Math.abs(x - fromX);
+		const dy = Math.abs(y - fromY);
+		if (!((dx <= 1) && (dy <= 1) && (dx + dy > 0))) {
+			return { ok : false, reason : "Target must be one of the 8 neighboring points.", complete : false, oppositeIndex : null };
+		}
+
+		const targetKey = toGridPointKey(layer, x, y);
+		const owners = ownersMap.get(targetKey);
+		let oppositeIndex = null;
+		if (owners && owners.size > 0) {
+			const selfOnly = owners.size === 1 && owners.has(ownNid);
+			if (!selfOnly) {
+				return { ok : false, reason : "Target point is already occupied.", complete : false, oppositeIndex : null };
+			}
+			oppositeIndex = resolveManualRouteOppositePointIndex(routeState, pending, tipIndex, layer, x, y);
+			if (oppositeIndex === null) {
+				return { ok : false, reason : "Target point is already occupied.", complete : false, oppositeIndex : null };
+			}
+		}
+
+		if (isDiagonalStepBlockedByOccupiedCell(diagonalCells, fromLayer, fromX, fromY, x, y)) {
+			return { ok : false, reason : "Target diagonal crosses an occupied cell diagonal.", complete : false, oppositeIndex : null };
+		}
+
+		return { ok : true, reason : "", complete : oppositeIndex !== null, oppositeIndex };
+	};
+}
+
+function computeNetBendCount(points) {
+	if (!Array.isArray(points) || points.length < 3) return 0;
+	let bends = 0;
+	let prev = null;
+	for (let i = 1; i < points.length; i++) {
+		const a = points[i - 1];
+		const b = points[i];
+		const sx = Math.sign((Number(b?.x) || 0) - (Number(a?.x) || 0));
+		const sy = Math.sign((Number(b?.y) || 0) - (Number(a?.y) || 0));
+		const sz = Math.sign((Number(b?.layer) || 0) - (Number(a?.layer) || 0));
+		if (sx === 0 && sy === 0 && sz === 0) continue;
+		const sig = `${sx},${sy},${sz}`;
+		if (prev !== null && prev !== sig) bends += 1;
+		prev = sig;
+	}
+	return bends;
+}
+
+function refreshNetRouteMetrics(design, net) {
+	if (!design || !net) return;
+	const points = getNetPointsForRouting(net);
+	net.bendCount = computeNetBendCount(points);
+	net.pathLen = null;
+	net.setPathLen?.(Number(design.dx) || 1, Number(design.dy) || 1);
+}
+
+function refreshDesignRouteMetrics(design) {
+	if (!design) return;
+	const dx = Number(design.dx) || 1;
+	const dy = Number(design.dy) || 1;
+	for (const g of (design.groups ?? [])) {
+		g?.calcLen?.(dx, dy);
+	}
+}
+
+function setDesignNetCreateMessage(text, isError = false) {
+	if (!designNetCreateMsgEl) return;
+	const message = String(text ?? "").trim();
+	designNetCreateMsgEl.textContent = message;
+	designNetCreateMsgEl.dataset.error = (message && isError) ? "1" : "0";
+}
+
+function isDesignNetModalOpen() {
+	return !!designNetModalEl && !designNetModalEl.hidden;
+}
+
+function openDesignNetModal() {
+	if (!designNetModalEl) return false;
+	if (!scenes.get(activeSceneId)?.design) {
+		setDesignNetCreateMessage("Load a design to create nets.", true);
+		return false;
+	}
+	syncDesignNetBuilderUi();
+	setDesignNetCreateMessage("");
+	designNetModalEl.hidden = false;
+	designNetModalEl.setAttribute("aria-hidden", "false");
+	designNetIdEl?.focus?.();
+	return true;
+}
+
+function closeDesignNetModal({ clearMessage = true } = {}) {
+	if (!designNetModalEl) return;
+	designNetModalEl.hidden = true;
+	designNetModalEl.setAttribute("aria-hidden", "true");
+	if (clearMessage) setDesignNetCreateMessage("");
+}
+
+function normalizeDesignToolNodeType(raw) {
+	const t = String(raw ?? "").trim().toLowerCase();
+	switch (t) {
+		case NodeType.BUMP:
+		case NodeType.TSV:
+		case NodeType.VIA:
+		case NodeType.GRID:
+			return t;
+		default:
+			return null;
+	}
+}
+
+function parseDesignToolMetaValue(raw) {
+	const s = String(raw ?? "").trim();
+	if (!s) return "";
+	const sl = s.toLowerCase();
+	if (sl === "true") return true;
+	if (sl === "false") return false;
+	if (sl === "null") return null;
+	const n = Number(s);
+	if (Number.isFinite(n)) return n;
+	return s;
+}
+
+function parseDesignToolOptionalRadius(raw, label) {
+	const s = String(raw ?? "").trim();
+	if (!s) return null;
+	const r = Number(s);
+	if (!Number.isFinite(r) || r <= 0) {
+		throw new Error(`${label} must be a positive number.`);
+	}
+	return r;
+}
+
+function applyDesignToolNodeRadius(node, radius, label) {
+	if (!node || !Number.isFinite(radius) || radius <= 0) return;
+	const t = String(node.type ?? "");
+	if (t !== NodeType.BUMP && t !== NodeType.TSV && t !== NodeType.VIA) {
+		throw new Error(`${label} is only supported for bump/tsv/via nodes.`);
+	}
+	if (!node.meta || typeof node.meta !== "object") node.meta = {};
+	node.meta.radius = radius;
+}
+
+function parseDesignToolNodeSpec(raw, label) {
+	const text = String(raw ?? "").trim();
+	if (!text) {
+		throw new Error(`${label} is required. Format: type x y layer`);
+	}
+
+	const toks = text.split(/\s+/);
+	if (toks.length < 4) {
+		throw new Error(`${label} is invalid. Format: type x y layer`);
+	}
+
+	const type = normalizeDesignToolNodeType(toks[0]);
+	if (!type) {
+		throw new Error(`${label} type must be one of bump/tsv/via/grid.`);
+	}
+
+	const x = Number(toks[1]);
+	const y = Number(toks[2]);
+	const layer = Number(toks[3]);
+	if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(layer)) {
+		throw new Error(`${label} coordinates must be integers.`);
+	}
+
+	const meta = {};
+	for (const tok of toks.slice(4)) {
+		const eq = tok.indexOf("=");
+		if (eq <= 0) continue;
+		const key = tok.slice(0, eq).trim();
+		const valueRaw = tok.slice(eq + 1).trim();
+		if (!key) continue;
+		meta[key] = parseDesignToolMetaValue(valueRaw);
+	}
+
+	return new Node({ type, x, y, layer, meta });
+}
+
+function validateDesignToolNodeInBounds(design, node, label) {
+	if (!design || !node) return;
+	const x = Number(node.x);
+	const y = Number(node.y);
+	const layer = Number(node.layer);
+	const nx = Math.max(1, Number(design.nx) | 0);
+	const ny = Math.max(1, Number(design.ny) | 0);
+	const nlayer = Math.max(1, Number(design.nlayer) | 0);
+	if (x < 0 || x >= nx || y < 0 || y >= ny || layer < 0 || layer >= nlayer) {
+		throw new Error(`${label} is out of design bounds.`);
+	}
+}
+
+function parseDesignToolPathNodes(rawText) {
+	const lines = String(rawText ?? "").split(/\r?\n/);
+	const nodes = [];
+	for (let i = 0; i < lines.length; i++) {
+		const line = String(lines[i] ?? "").trim();
+		if (!line) continue;
+		nodes.push(parseDesignToolNodeSpec(line, `Path node ${i + 1}`));
+	}
+	return nodes;
+}
+
+function collectUniqueViaNodes(nodes) {
+	const out = [];
+	const seen = new Set();
+	for (const node of (nodes ?? [])) {
+		if (!node || String(node.type) !== NodeType.VIA) continue;
+		const key = `${node.layer}:${node.x}:${node.y}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		out.push(new Node({
+			type : NodeType.VIA,
+			x : Number(node.x),
+			y : Number(node.y),
+			layer : Number(node.layer),
+			meta : { ...(node.meta ?? {}) },
+		}));
+	}
+	return out;
+}
+
+function syncDesignNetBuilderUi() {
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+	const hasDesign = !!design;
+	const groups = Array.isArray(design?.groups) ? design.groups : [];
+	const hasGroups = groups.length > 0;
+	if (designNetOpenBtnEl) designNetOpenBtnEl.disabled = !hasDesign;
+	if (!hasDesign && isDesignNetModalOpen()) closeDesignNetModal({ clearMessage : false });
+
+	if (designNetGroupSelectEl) {
+		const prev = String(designNetGroupSelectEl.value ?? "");
+		designNetGroupSelectEl.innerHTML = "";
+		if (hasGroups) {
+			for (const g of groups) {
+				const gid = String(g?.gid ?? "");
+				if (!gid) continue;
+				const name = String(g?.name ?? gid);
+				const opt = document.createElement("option");
+				opt.value = gid;
+				opt.textContent = `${name} (${gid})`;
+				designNetGroupSelectEl.appendChild(opt);
+			}
+			const keep = groups.some((g) => String(g?.gid ?? "") === prev);
+			designNetGroupSelectEl.value = keep ? prev : String(groups[0]?.gid ?? "");
+		} else {
+			const opt = document.createElement("option");
+			opt.value = "";
+			opt.textContent = "(No groups)";
+			designNetGroupSelectEl.appendChild(opt);
+			designNetGroupSelectEl.value = "";
+		}
+	}
+
+	const forceCreateGroup = hasDesign && !hasGroups;
+	if (designNetCreateGroupEl) {
+		if (forceCreateGroup) designNetCreateGroupEl.checked = true;
+		designNetCreateGroupEl.disabled = !hasDesign || forceCreateGroup;
+	}
+	const createGroupMode = !!designNetCreateGroupEl?.checked || forceCreateGroup;
+
+	const netControls = [
+		designNetIdEl,
+		designNetNameEl,
+		designNetEnabledEl,
+		designNetStartSpecEl,
+		designNetStartRadiusEl,
+		designNetEndSpecEl,
+		designNetEndRadiusEl,
+		designNetPathInputEl,
+		designNetCreateBtnEl,
+	];
+	for (const el of netControls) {
+		if (el) el.disabled = !hasDesign;
+	}
+
+	if (designNetGroupSelectEl) designNetGroupSelectEl.disabled = !hasDesign || createGroupMode || !hasGroups;
+	if (designNetNewGroupIdEl) designNetNewGroupIdEl.disabled = !hasDesign || !createGroupMode;
+	if (designNetNewGroupNameEl) designNetNewGroupNameEl.disabled = !hasDesign || !createGroupMode;
+	if (designNetNewGroupColorEl) designNetNewGroupColorEl.disabled = !hasDesign || !createGroupMode;
+
+	if (!hasDesign) {
+		setDesignNetCreateMessage("Load a design to create nets.", true);
+		return;
+	}
+	const curMsg = String(designNetCreateMsgEl?.textContent ?? "").trim();
+	if (!curMsg || curMsg === "Load a design to create nets.") {
+		setDesignNetCreateMessage("");
+	}
+}
+
+function createNetFromDesignTool() {
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+	if (!ctx || !design) {
+		setDesignNetCreateMessage("No active design is loaded.", true);
+		return false;
+	}
+	if (!Array.isArray(design.groups)) design.groups = [];
+
+	try {
+		const nid = String(designNetIdEl?.value ?? "").trim();
+		if (!nid) throw new Error("Net ID is required.");
+
+		for (const g of design.groups) {
+			for (const n of (g.nets ?? [])) {
+				if (String(n?.nid ?? "") === nid) {
+					throw new Error(`Net ID "${nid}" already exists.`);
+				}
+			}
+		}
+
+		const createGroupMode = !!designNetCreateGroupEl?.checked || design.groups.length === 0;
+		let targetGroup = null;
+		let pendingNewGroup = null;
+		if (createGroupMode) {
+			const gid = String(designNetNewGroupIdEl?.value ?? "").trim();
+			if (!gid) throw new Error("New Group ID is required.");
+
+			const exists = design.groups.some((g) => String(g?.gid ?? "") === gid);
+			if (exists) throw new Error(`Group ID "${gid}" already exists.`);
+
+			const gname = String(designNetNewGroupNameEl?.value ?? "").trim() || gid;
+			const gcolor = String(designNetNewGroupColorEl?.value ?? "#66ccff");
+			pendingNewGroup = new Group({
+				name : gname,
+				gid,
+				nets : [],
+				state : Tristate.ON,
+				color : gcolor,
+				meta : {},
+			});
+			targetGroup = pendingNewGroup;
+		} else {
+			const gid = String(designNetGroupSelectEl?.value ?? "").trim();
+			if (!gid) throw new Error("Target Group is required.");
+			targetGroup = design.groups.find((g) => String(g?.gid ?? "") === gid) ?? null;
+			if (!targetGroup) throw new Error(`Group "${gid}" was not found.`);
+		}
+
+		const startNode = parseDesignToolNodeSpec(designNetStartSpecEl?.value, "Start node");
+		const endNode = parseDesignToolNodeSpec(designNetEndSpecEl?.value, "End node");
+		const startRadius = parseDesignToolOptionalRadius(designNetStartRadiusEl?.value, "Start radius");
+		const endRadius = parseDesignToolOptionalRadius(designNetEndRadiusEl?.value, "End radius");
+		applyDesignToolNodeRadius(startNode, startRadius, "Start radius");
+		applyDesignToolNodeRadius(endNode, endRadius, "End radius");
+		validateDesignToolNodeInBounds(design, startNode, "Start node");
+		validateDesignToolNodeInBounds(design, endNode, "End node");
+
+		const pathNodes = parseDesignToolPathNodes(designNetPathInputEl?.value);
+		for (let i = 0; i < pathNodes.length; i++) {
+			validateDesignToolNodeInBounds(design, pathNodes[i], `Path node ${i + 1}`);
+		}
+
+		const allNodes = [startNode, ...pathNodes, endNode];
+		const viaNodes = collectUniqueViaNodes(allNodes);
+		const netName = String(designNetNameEl?.value ?? "").trim() || nid;
+		const enabled = !!designNetEnabledEl?.checked;
+		const net = new Net({
+			name : netName,
+			nid,
+			gid : String(targetGroup.gid),
+			start : startNode,
+			end : endNode,
+			enabled,
+			path : (pathNodes.length > 0) ? pathNodes : null,
+			vias : viaNodes,
+			pathLen : null,
+			bendCount : 0,
+			meta : {},
+		});
+
+		let committedGroup = false;
+		let committedNet = false;
+		try {
+			if (pendingNewGroup) {
+				design.groups.push(pendingNewGroup);
+				ensureGroupUiState(ctx)?.expandedGroups?.add?.(pendingNewGroup.gid);
+				committedGroup = true;
+			}
+
+			targetGroup.nets.push(net);
+			committedNet = true;
+
+			refreshGroupState(targetGroup);
+			refreshNetRouteMetrics(design, net);
+			refreshDesignRouteMetrics(design);
+			reapplyActiveDesignVisibility();
+			renderGroupTree();
+			if (createGroupMode && designNetCreateGroupEl) designNetCreateGroupEl.checked = false;
+			syncDesignNetBuilderUi();
+			if (designNetGroupSelectEl) designNetGroupSelectEl.value = String(targetGroup.gid);
+			selectNetByNid(null);
+			setDesignNetCreateMessage(`Net "${nid}" created in group "${targetGroup.gid}".`);
+		} catch (commitErr) {
+			if (committedNet) {
+				const netIdx = targetGroup.nets.lastIndexOf(net);
+				if (netIdx >= 0) targetGroup.nets.splice(netIdx, 1);
+			}
+			if (committedGroup && pendingNewGroup) {
+				const groupIdx = design.groups.lastIndexOf(pendingNewGroup);
+				if (groupIdx >= 0) design.groups.splice(groupIdx, 1);
+				ensureGroupUiState(ctx)?.expandedGroups?.delete?.(pendingNewGroup.gid);
+			}
+			throw commitErr;
+		}
+
+		if (designNetIdEl) designNetIdEl.value = "";
+		if (designNetNameEl) designNetNameEl.value = "";
+		if (designNetPathInputEl) designNetPathInputEl.value = "";
+		designNetIdEl?.focus?.();
+		return true;
+	} catch (err) {
+		const message = err?.message ? String(err.message) : "Failed to create net.";
+		setDesignNetCreateMessage(message, true);
+		return false;
+	}
+}
+
+function getManualRouteDefaultStatusText() {
+	if (!manualRouteState.enabled) return "Mode Off. Enable Manual Routing to edit.";
+	if (!manualRouteState.pending) return "Click a route endpoint in Layer Top view.";
+	const p = manualRouteState.pending;
+	return `Endpoint selected: ${p.nid} @ (${p.x}, ${p.y}, L${p.layer}). Click one of 8 neighboring valid points.`;
+}
+
+function syncManualRouteUi() {
+	const hasDesign = !!scenes.get(activeSceneId)?.design;
+	if (manualRouteModeEl) {
+		manualRouteModeEl.checked = !!manualRouteState.enabled;
+		manualRouteModeEl.disabled = !hasDesign;
+	}
+	if (designModeSelectBtnEl) {
+		const selectActive = !manualRouteState.enabled;
+		designModeSelectBtnEl.disabled = !hasDesign;
+		designModeSelectBtnEl.classList.toggle("active", selectActive);
+		designModeSelectBtnEl.setAttribute("aria-pressed", String(selectActive));
+	}
+	if (designModeRouteBtnEl) {
+		const routeActive = !!manualRouteState.enabled;
+		designModeRouteBtnEl.disabled = !hasDesign;
+		designModeRouteBtnEl.classList.toggle("active", routeActive);
+		designModeRouteBtnEl.setAttribute("aria-pressed", String(routeActive));
+	}
+	if (manualRouteCancelBtnEl) {
+		manualRouteCancelBtnEl.disabled = !manualRouteState.enabled || !hasDesign;
+	}
+	if (manualRouteStatusEl) {
+		const custom = String(manualRouteState.statusMessage ?? "").trim();
+		manualRouteStatusEl.textContent = custom || getManualRouteDefaultStatusText();
+	}
+}
+
+function setManualRouteStatus(message = "") {
+	manualRouteState.statusMessage = String(message ?? "");
+	syncManualRouteUi();
+}
+
+function clearManualRoutePending(statusMessage = "") {
+	manualRouteState.pending = null;
+	setManualRouteStatus(statusMessage);
+}
+
+function setManualRouteEnabled(enabled) {
+	manualRouteState.enabled = !!enabled;
+	if (manualRouteState.enabled) {
+		selectNetByNid(null);
+		setManualRouteStatus("");
+		return;
+	}
+	clearManualRoutePending("");
+}
+
+function findManualRouteEndpointAtGridPoint(ctx, layer, x, y) {
+	const design = ctx?.design;
+	if (!design) return null;
+	const preferredNid = selectedNetNid ? String(selectedNetNid) : null;
+	let preferred = null;
+	let fallback = null;
+
+	const pushCandidate = (candidate) => {
+		if (!candidate) return;
+		if (!fallback) fallback = candidate;
+		if (preferredNid && String(candidate.net?.nid) === preferredNid && !preferred) preferred = candidate;
+	};
+
+	for (const g of (design.groups ?? [])) {
+		for (const n of (g.nets ?? [])) {
+			if (!n?.enabled) continue;
+
+			const br = getNetManualRouteBreakMeta(n);
+			const tipStart = getNetRoutingTipNode(n, "start");
+			const tipEnd = getNetRoutingTipNode(n, "end");
+			const startAnchor = br ? tipStart : n.start;
+			const endAnchor = br ? tipEnd : n.end;
+			const startConnected =
+				!!tipStart &&
+				!!n.start &&
+				!isNodeAtGridPoint(tipStart, Number(n.start.layer), Number(n.start.x), Number(n.start.y));
+			const endConnected =
+				!!tipEnd &&
+				!!n.end &&
+				!isNodeAtGridPoint(tipEnd, Number(n.end.layer), Number(n.end.x), Number(n.end.y));
+			// Once an endpoint side is already connected, that fixed start/end point should not be selectable again.
+			const hitStartEndpoint = !startConnected && isNodeAtGridPoint(n.start, layer, x, y);
+			const hitEndEndpoint = !endConnected && isNodeAtGridPoint(n.end, layer, x, y);
+			const hitStartTip = !!br && isNodeAtGridPoint(tipStart, layer, x, y);
+			const hitEndTip = !!br && isNodeAtGridPoint(tipEnd, layer, x, y);
+			const hitStart = hitStartEndpoint || hitStartTip;
+			const hitEnd = hitEndEndpoint || hitEndTip;
+
+			if (hitStart && startAnchor) {
+				pushCandidate({
+					group : g,
+					net : n,
+					side : "start",
+					anchor : {
+						layer : Number(startAnchor.layer),
+						x : Number(startAnchor.x),
+						y : Number(startAnchor.y),
+					},
+				});
+			}
+			if (hitEnd && endAnchor) {
+				pushCandidate({
+					group : g,
+					net : n,
+					side : "end",
+					anchor : {
+						layer : Number(endAnchor.layer),
+						x : Number(endAnchor.x),
+						y : Number(endAnchor.y),
+					},
+				});
+			}
+		}
+	}
+
+	return preferred ?? fallback;
+}
+
+function beginManualRouteFromEndpoint(endpoint) {
+	if (!endpoint?.net || !endpoint?.side || !endpoint?.anchor) {
+		clearManualRoutePending("Endpoint is invalid.");
+		return false;
+	}
+
+	manualRouteState.pending = {
+		nid : String(endpoint.net.nid),
+		side : endpoint.side,
+		layer : Number(endpoint.anchor.layer),
+		x : Number(endpoint.anchor.x),
+		y : Number(endpoint.anchor.y),
+	};
+	const breakChanged = setNetManualRouteBreakMeta(endpoint.net, manualRouteState.pending);
+	if (breakChanged) reapplyActiveDesignVisibility();
+	setManualRouteStatus("");
+	return true;
+}
+
+function applyManualRouteStep(ctx, targetLayer, targetX, targetY) {
+	const pending = manualRouteState.pending;
+	if (!pending) return false;
+	const found = findNetByNid(ctx, pending.nid);
+	if (!found?.net?.enabled) {
+		clearManualRoutePending("Selected route is unavailable.");
+		return false;
+	}
+
+	const net = found.net;
+	const routeState = buildManualRouteNetState(net);
+	const tipIndex = resolveManualRoutePendingFullIndex(routeState, pending);
+	if (tipIndex === null) {
+		clearManualRoutePending("Could not resolve route endpoint.");
+		return false;
+	}
+
+	const validateTarget = createManualRouteStepValidator(ctx, net, pending, routeState);
+	if (typeof validateTarget !== "function") {
+		clearManualRoutePending("Could not resolve route endpoint.");
+		return false;
+	}
+
+	const toLayer = Number(targetLayer);
+	const toX = Number(targetX);
+	const toY = Number(targetY);
+	const verdict = validateTarget(toLayer, toX, toY);
+	if (!verdict?.ok) {
+		setManualRouteStatus(verdict?.reason || "Target point is invalid.");
+		return false;
+	}
+
+	const points = Array.isArray(routeState.points) ? routeState.points.slice() : [];
+	if (points.length < 2 || tipIndex < 0 || tipIndex >= points.length) {
+		clearManualRoutePending("Could not resolve route endpoint.");
+		return false;
+	}
+
+	if (verdict.complete && Number.isFinite(verdict.oppositeIndex)) {
+		const oppositeIndex = Number(verdict.oppositeIndex);
+		let merged = null;
+		if (pending.side === "start") {
+			if (oppositeIndex <= tipIndex || oppositeIndex >= points.length) {
+				setManualRouteStatus("Could not resolve opposite-side route state.");
+				return false;
+			}
+			merged = [...points.slice(0, tipIndex + 1), ...points.slice(oppositeIndex)];
+		} else {
+			if (oppositeIndex < 0 || oppositeIndex >= tipIndex) {
+				setManualRouteStatus("Could not resolve opposite-side route state.");
+				return false;
+			}
+			merged = [...points.slice(0, oppositeIndex + 1), ...points.slice(tipIndex)];
+		}
+		setNetPathFromFullPoints(net, merged);
+		clearNetManualRouteBreakMeta(net);
+		manualRouteState.pending = null;
+		refreshNetRouteMetrics(ctx.design, net);
+		refreshDesignRouteMetrics(ctx.design);
+		reapplyActiveDesignVisibility();
+		setManualRouteStatus(`Route completed for net "${net.nid}". Click a route endpoint to continue editing.`);
+		return true;
+	}
+
+	const insertIndex = (pending.side === "start") ? (tipIndex + 1) : tipIndex;
+	const newNode = new Node({
+		type : NodeType.GRID,
+		x : toX,
+		y : toY,
+		layer : toLayer,
+		meta : {},
+	});
+	points.splice(insertIndex, 0, newNode);
+	setNetPathFromFullPoints(net, points);
+
+	manualRouteState.pending = {
+		nid : String(net.nid),
+		side : pending.side,
+		layer : Number(toLayer),
+		x : Number(toX),
+		y : Number(toY),
+	};
+	setNetManualRouteBreakMeta(net, manualRouteState.pending);
+
+	refreshNetRouteMetrics(ctx.design, net);
+	refreshDesignRouteMetrics(ctx.design);
+	reapplyActiveDesignVisibility();
+
+	setManualRouteStatus(`Connected to (${toX}, ${toY}, L${toLayer}). Click another neighboring valid point, or clear selection.`);
+	return true;
+}
+
+function tryHandleManualRouteClick(clientX, clientY) {
+	if (!manualRouteState.enabled) return false;
+	const ctx = scenes.get(activeSceneId);
+	if (!ctx?.design) {
+		setManualRouteStatus("Load a design before manual routing.");
+		return true;
+	}
+	if (!camera?.isOrthographicCamera) {
+		setManualRouteStatus("Manual routing works in Layer Top camera.");
+		return true;
+	}
+
+	const minPitch = snapTopGridClientPointToWorld(camera, clientX, clientY, topGridPickWorld, null, topGridPickNode);
+	if (!(minPitch > 0)) {
+		setManualRouteStatus("Could not resolve a grid point from this click.");
+		return true;
+	}
+
+	if (!manualRouteState.pending) {
+		const endpoint = findManualRouteEndpointAtGridPoint(ctx, topGridPickNode.layer, topGridPickNode.x, topGridPickNode.y);
+		if (!endpoint) {
+			setManualRouteStatus("No route endpoint at this point. Click a route endpoint first.");
+			return true;
+		}
+		beginManualRouteFromEndpoint(endpoint);
+		return true;
+	}
+
+	applyManualRouteStep(ctx, topGridPickNode.layer, topGridPickNode.x, topGridPickNode.y);
+	return true;
 }
 
 function computeNetFocusData(ctx, nid) {
@@ -2050,7 +3342,7 @@ function focusCameraOnNetByNid(nid) {
 	return true;
 }
 
-function selectNetByNid(nid) {
+function selectNetByNid(nid, { openInspectTab = true } = {}) {
 	if (!nid) {
 		selectedNetNid = null;
 		clearNetHighlight();
@@ -2073,7 +3365,7 @@ function selectNetByNid(nid) {
 		return false;
 	}
 	setNetInfoPanelContent(getNetInfoByNid(ctx, selectedNetNid));
-	sidePanels?.right?.setActiveTab?.("inspect", { expand : true });
+	if (openInspectTab) sidePanels?.right?.setActiveTab?.("inspect", { expand : true });
 	return true;
 }
 
@@ -2093,6 +3385,7 @@ function focusAndSelectNetByIndex(gIdx, nIdx) {
 }
 
 function selectNearestNetAtClientPoint(clientX, clientY) {
+	if (manualRouteState.enabled) return;
 	const nid = pickNearestNetFromClick(clientX, clientY);
 	selectNetByNid(nid);
 }
@@ -2111,6 +3404,107 @@ function syncSelectedNetForActiveScene() {
 	}
 	const ctx = scenes.get(activeSceneId);
 	setNetInfoPanelContent(getNetInfoByNid(ctx, selectedNetNid));
+}
+
+function isDeleteConfirmModalOpen() {
+	return !!deleteConfirmModalEl && !deleteConfirmModalEl.hidden;
+}
+
+function closeDeleteConfirmModal() {
+	if (!deleteConfirmModalEl) return;
+	deleteConfirmModalEl.hidden = true;
+	deleteConfirmModalEl.setAttribute("aria-hidden", "true");
+	deleteConfirmState.pending = null;
+	if (deleteConfirmMessageEl) {
+		deleteConfirmMessageEl.textContent = "";
+	}
+}
+
+function openDeleteConfirmModal(pending) {
+	if (!deleteConfirmModalEl || !pending) return false;
+	deleteConfirmState.pending = pending;
+	if (deleteConfirmTitleEl) {
+		deleteConfirmTitleEl.textContent = pending.title || "Confirm Delete";
+	}
+	if (deleteConfirmMessageEl) {
+		deleteConfirmMessageEl.textContent = pending.message || "Are you sure you want to delete this item?";
+	}
+	deleteConfirmModalEl.hidden = false;
+	deleteConfirmModalEl.setAttribute("aria-hidden", "false");
+	deleteConfirmConfirmBtnEl?.focus?.();
+	return true;
+}
+
+function removeGroupAtIndex(gIdx) {
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+	if (!ctx || !design || !Array.isArray(design.groups)) return false;
+	if (!Number.isFinite(gIdx) || gIdx < 0 || gIdx >= design.groups.length) return false;
+
+	const group = design.groups[gIdx];
+	const gid = String(group?.gid ?? "");
+	const removedNids = new Set((group?.nets ?? []).map((n) => String(n?.nid ?? "")));
+
+	design.groups.splice(gIdx, 1);
+	if (gid) ensureGroupUiState(ctx)?.expandedGroups?.delete?.(gid);
+
+	if (selectedNetNid && removedNids.has(String(selectedNetNid))) {
+		selectedNetNid = null;
+	}
+	if (manualRouteState.pending && removedNids.has(String(manualRouteState.pending.nid ?? ""))) {
+		clearManualRoutePending("Endpoint cleared because the net was deleted.");
+	}
+
+	refreshDesignRouteMetrics(design);
+	reapplyActiveDesignVisibility();
+	renderGroupTree();
+	syncDesignNetBuilderUi();
+	return true;
+}
+
+function removeNetAtIndex(gIdx, nIdx) {
+	const ctx = scenes.get(activeSceneId);
+	const design = ctx?.design;
+	if (!ctx || !design || !Array.isArray(design.groups)) return false;
+	if (!Number.isFinite(gIdx) || !Number.isFinite(nIdx)) return false;
+	if (gIdx < 0 || gIdx >= design.groups.length) return false;
+
+	const group = design.groups[gIdx];
+	if (!group || !Array.isArray(group.nets)) return false;
+	if (nIdx < 0 || nIdx >= group.nets.length) return false;
+
+	const removedNet = group.nets[nIdx];
+	const removedNid = String(removedNet?.nid ?? "");
+	group.nets.splice(nIdx, 1);
+	refreshGroupState(group);
+
+	if (selectedNetNid && String(selectedNetNid) === removedNid) {
+		selectedNetNid = null;
+	}
+	if (manualRouteState.pending && String(manualRouteState.pending.nid ?? "") === removedNid) {
+		clearManualRoutePending("Endpoint cleared because the net was deleted.");
+	}
+
+	refreshDesignRouteMetrics(design);
+	reapplyActiveDesignVisibility();
+	renderGroupTree();
+	syncDesignNetBuilderUi();
+	return true;
+}
+
+function runDeleteConfirmAction() {
+	const pending = deleteConfirmState.pending;
+	if (!pending) return false;
+
+	let ok = false;
+	if (pending.kind === "group") {
+		ok = removeGroupAtIndex(Number(pending.gIdx));
+	} else if (pending.kind === "net") {
+		ok = removeNetAtIndex(Number(pending.gIdx), Number(pending.nIdx));
+	}
+
+	closeDeleteConfirmModal();
+	return ok;
 }
 
 function ensureGroupUiState(ctx) {
@@ -2193,8 +3587,15 @@ function renderGroupTree() {
 		const label = document.createElement("span");
 		label.className = "group-label";
 		label.textContent = `${group.name ?? group.gid} (${group.nets.length})`;
+		const gDelete = document.createElement("button");
+		gDelete.type = "button";
+		gDelete.className = "tree-delete-btn";
+		gDelete.dataset.role = "group-delete";
+		gDelete.dataset.gidx = String(gIdx);
+		gDelete.textContent = "Delete";
+		gDelete.title = "Delete this group and all nets in it";
 
-		gRow.append(exp, chk, label);
+		gRow.append(exp, chk, label, gDelete);
 		gWrap.appendChild(gRow);
 
 		if (open) {
@@ -2222,7 +3623,15 @@ function renderGroupTree() {
 				nFocus.textContent = "Focus";
 				nFocus.title = "Focus camera on this net and select it";
 				nFocus.disabled = !net.enabled;
-				nRow.append(nChk, nLabel, nFocus);
+				const nDelete = document.createElement("button");
+				nDelete.type = "button";
+				nDelete.className = "tree-delete-btn";
+				nDelete.dataset.role = "net-delete";
+				nDelete.dataset.gidx = String(gIdx);
+				nDelete.dataset.nidx = String(nIdx);
+				nDelete.textContent = "Delete";
+				nDelete.title = "Delete this net";
+				nRow.append(nChk, nLabel, nFocus, nDelete);
 				children.appendChild(nRow);
 			});
 			gWrap.appendChild(children);
@@ -2322,11 +3731,135 @@ if (cameraResetBtnEl) {
 	});
 }
 
+if (manualRouteModeEl) {
+	manualRouteModeEl.addEventListener("change", () => {
+		setManualRouteEnabled(manualRouteModeEl.checked);
+	});
+}
+
+if (designModeSelectBtnEl) {
+	designModeSelectBtnEl.addEventListener("click", () => {
+		setManualRouteEnabled(false);
+	});
+}
+
+if (designModeRouteBtnEl) {
+	designModeRouteBtnEl.addEventListener("click", () => {
+		setManualRouteEnabled(true);
+	});
+}
+
+if (manualRouteCancelBtnEl) {
+	manualRouteCancelBtnEl.addEventListener("click", () => {
+		clearManualRoutePending("Selection cleared. Click a route endpoint in Layer Top view.");
+	});
+}
+
+if (designNetCreateGroupEl) {
+	designNetCreateGroupEl.addEventListener("change", () => {
+		syncDesignNetBuilderUi();
+	});
+}
+
+if (designNetCreateBtnEl) {
+	designNetCreateBtnEl.addEventListener("click", () => {
+		createNetFromDesignTool();
+	});
+}
+
+if (designNetOpenBtnEl) {
+	designNetOpenBtnEl.addEventListener("click", () => {
+		openDesignNetModal();
+	});
+}
+
+if (designNetCloseBtnEl) {
+	designNetCloseBtnEl.addEventListener("click", () => {
+		closeDesignNetModal();
+	});
+}
+
+if (designNetCancelBtnEl) {
+	designNetCancelBtnEl.addEventListener("click", () => {
+		closeDesignNetModal();
+	});
+}
+
+if (designNetModalEl) {
+	designNetModalEl.addEventListener("click", (e) => {
+		const closeRole = e.target?.closest?.("[data-role=\"design-net-close\"]");
+		if (!closeRole) return;
+		closeDesignNetModal();
+	});
+}
+
+if (deleteConfirmCloseBtnEl) {
+	deleteConfirmCloseBtnEl.addEventListener("click", () => {
+		closeDeleteConfirmModal();
+	});
+}
+
+if (deleteConfirmCancelBtnEl) {
+	deleteConfirmCancelBtnEl.addEventListener("click", () => {
+		closeDeleteConfirmModal();
+	});
+}
+
+if (deleteConfirmConfirmBtnEl) {
+	deleteConfirmConfirmBtnEl.addEventListener("click", () => {
+		runDeleteConfirmAction();
+	});
+}
+
+if (deleteConfirmModalEl) {
+	deleteConfirmModalEl.addEventListener("click", (e) => {
+		const closeRole = e.target?.closest?.("[data-role=\"delete-confirm-close\"]");
+		if (!closeRole) return;
+		closeDeleteConfirmModal();
+	});
+}
+
+window.addEventListener("keydown", (e) => {
+	if (e.key !== "Escape") return;
+	if (isDeleteConfirmModalOpen()) {
+		e.preventDefault();
+		closeDeleteConfirmModal();
+		return;
+	}
+	if (!isDesignNetModalOpen()) return;
+	e.preventDefault();
+	closeDesignNetModal();
+});
+
+for (const el of [
+	designNetGroupSelectEl,
+	designNetNewGroupIdEl,
+	designNetNewGroupNameEl,
+	designNetNewGroupColorEl,
+	designNetIdEl,
+	designNetNameEl,
+	designNetEnabledEl,
+	designNetStartSpecEl,
+	designNetStartRadiusEl,
+	designNetEndSpecEl,
+	designNetEndRadiusEl,
+	designNetPathInputEl,
+]) {
+	if (!el) continue;
+	const ev = (el.tagName === "SELECT" || el.type === "checkbox" || el.type === "color") ? "change" : "input";
+	el.addEventListener(ev, () => {
+		if (!scenes.get(activeSceneId)?.design) return;
+		setDesignNetCreateMessage("");
+	});
+}
+
 initScenes();
 renderSceneList();
 renderCameraButtons();
 renderGroupTree();
 syncLayerStyleControls();
+syncManualRouteUi();
+syncDesignNetBuilderUi();
 
 function getScenesForUI() {
 	const arr = [];
@@ -3115,6 +4648,7 @@ function animate() {
 	updateAdaptiveGridVisibility(activeScene, activeCam);
 	updateTopViewRulerOverlay(activeCam);
 	updateTopGridHoverIndicator(activeCam);
+	updateManualRouteCandidateOverlay(activeCam);
 	renderer.render(activeScene, activeCam);
 }
 
@@ -3157,6 +4691,10 @@ function handleNetPickPointerUp(e) {
 	netPickPointerDown.active = false;
 
 	if (movedDistSq > (NET_PICK_MAX_DRAG_PX * NET_PICK_MAX_DRAG_PX)) return;
+	if (manualRouteState.enabled) {
+		tryHandleManualRouteClick(e.clientX, clientY);
+		return;
+	}
 	selectNearestNetAtClientPoint(e.clientX, clientY);
 }
 
@@ -3179,6 +4717,49 @@ window.addEventListener("blur", () => {
 
 if (groupTreeEl) {
 	groupTreeEl.addEventListener("click", (e) => {
+		const groupDeleteBtn = e.target?.closest?.("button[data-role=\"group-delete\"]");
+		if (groupDeleteBtn) {
+			const ctx = scenes.get(activeSceneId);
+			const design = ctx?.design;
+			const gIdx = Number(groupDeleteBtn.dataset.gidx);
+			if (!ctx || !design || !Array.isArray(design.groups)) return;
+			if (!Number.isFinite(gIdx) || gIdx < 0 || gIdx >= design.groups.length) return;
+			const group = design.groups[gIdx];
+			const label = String(group?.name ?? group?.gid ?? "this group");
+			const count = Math.max(0, Number(group?.nets?.length) || 0);
+			const netText = `${count} net${count === 1 ? "" : "s"}`;
+			openDeleteConfirmModal({
+				kind : "group",
+				gIdx,
+				title : "Delete Group",
+				message : `Delete group "${label}" and ${netText}?`,
+			});
+			return;
+		}
+
+		const netDeleteBtn = e.target?.closest?.("button[data-role=\"net-delete\"]");
+		if (netDeleteBtn) {
+			const ctx = scenes.get(activeSceneId);
+			const design = ctx?.design;
+			const gIdx = Number(netDeleteBtn.dataset.gidx);
+			const nIdx = Number(netDeleteBtn.dataset.nidx);
+			if (!ctx || !design || !Array.isArray(design.groups)) return;
+			if (!Number.isFinite(gIdx) || !Number.isFinite(nIdx)) return;
+			if (gIdx < 0 || gIdx >= design.groups.length) return;
+			const group = design.groups[gIdx];
+			if (!group || !Array.isArray(group.nets) || nIdx < 0 || nIdx >= group.nets.length) return;
+			const net = group.nets[nIdx];
+			const netLabel = String(net?.name ?? net?.nid ?? "this net");
+			openDeleteConfirmModal({
+				kind : "net",
+				gIdx,
+				nIdx,
+				title : "Delete Net",
+				message : `Delete net "${netLabel}"?`,
+			});
+			return;
+		}
+
 		const netFocusBtn = e.target?.closest?.("button[data-role=\"net-focus\"]");
 		if (netFocusBtn) {
 			const gIdx = Number(netFocusBtn.dataset.gidx);
