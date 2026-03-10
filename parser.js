@@ -12,7 +12,7 @@ function parseValue(raw) {
 	let s = raw.trim();
 	if (!s) return "";
 
-	// 따옴표 문자열
+	// Note.
 	if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
 		return s.slice(1, -1);
 	}
@@ -23,7 +23,7 @@ function parseValue(raw) {
 	if (sl === "false") return false;
 	if (sl === "null") return null;
 
-	// 0/1을 bool로 쓰고 싶으면 여기서 처리
+	// Note.
 	if (s === "0") return 0;
 	if (s === "1") return 1;
 
@@ -45,12 +45,12 @@ function parseKeyValue(line) {
 
 function normalizeNodeType(t) {
 	const v = (t || "").toLowerCase();
-	// NodeType 상수값과 일치하면 그대로 사용
+	// Note.
 	if (v === NodeType.BUMP) return NodeType.BUMP;
 	if (v === NodeType.TSV) return NodeType.TSV;
 	if (v === NodeType.VIA) return NodeType.VIA;
 	if (v === NodeType.GRID) return NodeType.GRID;
-	return v; // 확장 타입을 쓰실 수도 있으니 fallback
+	return v; // Note.
 }
 
 /**
@@ -110,7 +110,7 @@ function toBool01(v) {
 export function parseDesignText(rawText) {
 	const lines = rawText.split(/\r?\n/);
 
-	// Design props (필수)
+	// Note.
 	const designProps = {
 		nlayer : null,
 		nx : null,
@@ -148,7 +148,7 @@ export function parseDesignText(rawText) {
 		line = line.trim();
 		if (!line) continue;
 
-		// PATH/VIAS 내부는 node spec 전용
+		// Note.
 		if (mode === "path") {
 			if (line === "ENDPATH") {
 				mode = "net";
@@ -182,7 +182,7 @@ export function parseDesignText(rawText) {
 			continue;
 		}
 
-		// 블록 시작/종료
+		// Note.
 		if (line === "DESIGN") {
 			mode = "design";
 			continue;
@@ -216,7 +216,7 @@ export function parseDesignText(rawText) {
 				color : curGroup.color,
 				meta : curGroup.meta,
 			});
-			// enabled 상태 기반으로 state 자동 계산을 원하시면 아래 한 줄 활성화
+			// Note.
 			// g.initState();
 			groups.push(g);
 			curGroup = null;
@@ -259,7 +259,7 @@ export function parseDesignText(rawText) {
 				start : curNet.start,
 				end : curNet.end,
 				enabled : curNet.enabled,
-				path : curNet.path,		// null이면 unrouted
+				path : curNet.path, // Note.
 				vias : curNet.vias,
 				pathLen : curNet.pathLen,
 				bendCount : curNet.bendCount,
@@ -274,7 +274,7 @@ export function parseDesignText(rawText) {
 
 		if (line === "PATH") {
 			if (!curNet) throw new Error(`PATH without NET at line ${lineNo + 1}`);
-			curNet.path = [];			// PATH 시작 => routed로 간주
+			curNet.path = []; // Note.
 			mode = "path";
 			continue;
 		}
@@ -291,7 +291,7 @@ export function parseDesignText(rawText) {
 			continue;
 		}
 
-		// 일반 key:value 처리
+		// Note.
 		const kv = parseKeyValue(line);
 		if (!kv) {
 			throw new Error(`Expected key:value or block keyword at line ${lineNo + 1}: "${line}"`);
@@ -300,7 +300,7 @@ export function parseDesignText(rawText) {
 		const key = kv.key;
 		const val = kv.value;
 
-		// DESIGN 키
+		// DESIGN ??
 		if (!curGroup && !curNet && (mode === "design" || mode === null)) {
 			if (key in designProps) {
 				designProps[key] = parseValue(val);
@@ -310,7 +310,7 @@ export function parseDesignText(rawText) {
 			continue;
 		}
 
-		// GROUP 키
+		// GROUP ??
 		if (curGroup && !curNet) {
 			if (key === "name") curGroup.name = parseValue(val);
 			else if (key === "color") curGroup.color = String(parseValue(val));
@@ -319,7 +319,7 @@ export function parseDesignText(rawText) {
 			continue;
 		}
 
-		// NET 키
+		// NET ??
 		if (curNet) {
 			if (key === "name") curNet.name = parseValue(val);
 			else if (key === "gid") curNet.gid = String(parseValue(val));
@@ -333,7 +333,7 @@ export function parseDesignText(rawText) {
 		}
 	}
 
-	// 필수 필드 체크
+	// Note.
 	for (const k of ["nlayer", "nx", "ny", "dx", "dy", "layerGap"]) {
 		if (!Number.isFinite(Number(designProps[k]))) {
 			throw new Error(`DESIGN missing or invalid "${k}"`);
@@ -353,4 +353,131 @@ export function parseDesignText(rawText) {
 		viaRadius : (designProps.viaRadius === null) ? null : Number(designProps.viaRadius),
 		meta : designMeta,
 	});
+}
+
+function toKvValue(v) {
+	if (v === null) return "null";
+	if (typeof v === "boolean") return v ? "true" : "false";
+	if (typeof v === "number" && Number.isFinite(v)) return String(v);
+	return JSON.stringify(String(v));
+}
+
+function toNodeMetaToken(v) {
+	if (v === null) return "null";
+	if (typeof v === "boolean") return v ? "true" : "false";
+	if (typeof v === "number" && Number.isFinite(v)) return String(v);
+	const s = String(v);
+	if (/\s/.test(s)) return null; // parseNodeSpec is whitespace-token based
+	return s;
+}
+
+function toNodeSpec(node) {
+	if (!node) return null;
+	const x = Number(node.x);
+	const y = Number(node.y);
+	const layer = Number(node.layer);
+	if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(layer)) return null;
+
+	const type = String(node.type ?? NodeType.GRID);
+	const out = [type, String(x), String(y), String(layer)];
+	const meta = node.meta && typeof node.meta === "object" ? node.meta : null;
+	if (meta) {
+		for (const [k, v] of Object.entries(meta)) {
+			const tv = toNodeMetaToken(v);
+			if (tv === null) continue;
+			out.push(`${k}=${tv}`);
+		}
+	}
+	return out.join(" ");
+}
+
+function pushMetaBlock(lines, meta) {
+	if (!meta || typeof meta !== "object") return;
+	const entries = Object.entries(meta);
+	if (entries.length === 0) return;
+	lines.push("META");
+	for (const [k, v] of entries) {
+		lines.push(`${k}: ${toKvValue(v)}`);
+	}
+	lines.push("ENDMETA");
+}
+
+function toGroupState(state) {
+	const s = String(state ?? "").toLowerCase();
+	if (s === Tristate.ON || s === Tristate.OFF || s === Tristate.PARTIAL) return s;
+	return Tristate.ON;
+}
+
+export function serializeDesignText(design) {
+	if (!design) throw new Error("Design is required.");
+
+	const lines = [];
+	lines.push("DESIGN");
+	lines.push(`nlayer: ${Number(design.nlayer)}`);
+	lines.push(`nx: ${Number(design.nx)}`);
+	lines.push(`ny: ${Number(design.ny)}`);
+	lines.push(`dx: ${Number(design.dx)}`);
+	lines.push(`dy: ${Number(design.dy)}`);
+	lines.push(`layerGap: ${Number(design.layerGap)}`);
+
+	if (Number.isFinite(Number(design.bumpRadius))) lines.push(`bumpRadius: ${Number(design.bumpRadius)}`);
+	if (Number.isFinite(Number(design.tsvRadius))) lines.push(`tsvRadius: ${Number(design.tsvRadius)}`);
+	if (Number.isFinite(Number(design.viaRadius))) lines.push(`viaRadius: ${Number(design.viaRadius)}`);
+	pushMetaBlock(lines, design.meta);
+	lines.push("ENDDESIGN");
+
+	const groups = Array.isArray(design.groups) ? design.groups : [];
+	for (const g of groups) {
+		const gid = String(g?.gid ?? g?.name ?? "group");
+		lines.push(`GROUP ${gid}`);
+		lines.push(`name: ${toKvValue(g?.name ?? gid)}`);
+		lines.push(`color: ${toKvValue(g?.color ?? "#FFFFFF")}`);
+		lines.push(`state: ${toKvValue(toGroupState(g?.state))}`);
+		pushMetaBlock(lines, g?.meta);
+
+		const nets = Array.isArray(g?.nets) ? g.nets : [];
+		for (const n of nets) {
+			const nid = String(n?.nid ?? n?.name ?? "net");
+			lines.push(`NET ${nid}`);
+			lines.push(`name: ${toKvValue(n?.name ?? nid)}`);
+			lines.push(`gid: ${toKvValue(n?.gid ?? gid)}`);
+			lines.push(`enabled: ${toKvValue(!!n?.enabled)}`);
+			if (Number.isFinite(Number(n?.bendCount))) lines.push(`bendCount: ${Number(n.bendCount)}`);
+			if (Number.isFinite(Number(n?.pathLen))) lines.push(`pathLen: ${Number(n.pathLen)}`);
+
+			const startSpec = toNodeSpec(n?.start);
+			const endSpec = toNodeSpec(n?.end);
+			if (!startSpec || !endSpec) {
+				throw new Error(`NET "${nid}" is missing valid start/end node.`);
+			}
+			lines.push(`start: ${startSpec}`);
+			lines.push(`end: ${endSpec}`);
+			pushMetaBlock(lines, n?.meta);
+
+			if (Array.isArray(n?.path)) {
+				lines.push("PATH");
+				for (const p of n.path) {
+					const spec = toNodeSpec(p);
+					if (spec) lines.push(spec);
+				}
+				lines.push("ENDPATH");
+			}
+
+			const vias = Array.isArray(n?.vias) ? n.vias : [];
+			if (vias.length > 0) {
+				lines.push("VIAS");
+				for (const v of vias) {
+					const spec = toNodeSpec(v);
+					if (spec) lines.push(spec);
+				}
+				lines.push("ENDVIAS");
+			}
+
+			lines.push("ENDNET");
+		}
+
+		lines.push("ENDGROUP");
+	}
+
+	return `${lines.join("\n")}\n`;
 }

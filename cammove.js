@@ -196,7 +196,7 @@ export function createOrthoCameraMover({
 		const cam = getCamera();
 		const ctl = getControls();
 
-		// zoom 범위는 즉시 적용
+		// Note.
 		if (minZoom !== undefined) ctl.minZoom = minZoom;
 		if (maxZoom !== undefined) ctl.maxZoom = maxZoom;
 

@@ -1,0 +1,1872 @@
+DESIGN
+nlayer: 6
+nx: 260
+ny: 220
+dx: 1
+dy: 1
+layerGap: 2
+bumpRadius: 0.18
+tsvRadius: 0.24
+viaRadius: 0.11
+META
+designName: "large_nonoverlap_4groups"
+author: "codex"
+note: "4 groups, dense nets, no node overlap by construction"
+ENDMETA
+ENDDESIGN
+GROUP G_CLK
+name: "ClockLike"
+color: "#FF6B6B"
+state: "on"
+META
+role: "group_0"
+ENDMETA
+NET G_CLK_N00
+name: "ClockLike_00"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 42 0
+end: tsv 228 42 2
+PATH
+grid 20 42 0
+via 92 42 1 kind=sig
+grid 218 42 1
+via 218 42 2 kind=sig
+ENDPATH
+VIAS
+via 92 42 1 kind=sig
+via 218 42 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N01
+name: "ClockLike_01"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 43 0
+end: tsv 229 43 2
+PATH
+grid 21 43 0
+via 93 43 1 kind=sig
+grid 219 43 1
+via 219 43 2 kind=sig
+ENDPATH
+VIAS
+via 93 43 1 kind=sig
+via 219 43 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N02
+name: "ClockLike_02"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 44 0
+end: tsv 230 44 2
+PATH
+grid 22 44 0
+via 94 44 1 kind=sig
+grid 220 44 1
+via 220 44 2 kind=sig
+ENDPATH
+VIAS
+via 94 44 1 kind=sig
+via 220 44 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N03
+name: "ClockLike_03"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 45 0
+end: tsv 231 45 2
+PATH
+grid 23 45 0
+via 95 45 1 kind=sig
+grid 221 45 1
+via 221 45 2 kind=sig
+ENDPATH
+VIAS
+via 95 45 1 kind=sig
+via 221 45 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N04
+name: "ClockLike_04"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 46 0
+end: tsv 232 46 2
+PATH
+grid 24 46 0
+via 96 46 1 kind=sig
+grid 222 46 1
+via 222 46 2 kind=sig
+ENDPATH
+VIAS
+via 96 46 1 kind=sig
+via 222 46 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N05
+name: "ClockLike_05"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 47 0
+end: tsv 233 47 2
+PATH
+grid 25 47 0
+via 97 47 1 kind=sig
+grid 223 47 1
+via 223 47 2 kind=sig
+ENDPATH
+VIAS
+via 97 47 1 kind=sig
+via 223 47 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N06
+name: "ClockLike_06"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 48 0
+end: tsv 234 48 2
+PATH
+grid 20 48 0
+via 98 48 1 kind=sig
+grid 224 48 1
+via 224 48 2 kind=sig
+ENDPATH
+VIAS
+via 98 48 1 kind=sig
+via 224 48 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N07
+name: "ClockLike_07"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 49 0
+end: tsv 228 49 2
+PATH
+grid 21 49 0
+via 99 49 1 kind=sig
+grid 218 49 1
+via 218 49 2 kind=sig
+ENDPATH
+VIAS
+via 99 49 1 kind=sig
+via 218 49 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N08
+name: "ClockLike_08"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 50 0
+end: tsv 229 50 2
+PATH
+grid 22 50 0
+via 100 50 1 kind=sig
+grid 219 50 1
+via 219 50 2 kind=sig
+ENDPATH
+VIAS
+via 100 50 1 kind=sig
+via 219 50 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N09
+name: "ClockLike_09"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 51 0
+end: tsv 230 51 2
+PATH
+grid 23 51 0
+via 101 51 1 kind=sig
+grid 220 51 1
+via 220 51 2 kind=sig
+ENDPATH
+VIAS
+via 101 51 1 kind=sig
+via 220 51 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N10
+name: "ClockLike_10"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 52 0
+end: tsv 231 52 2
+PATH
+grid 24 52 0
+via 92 52 1 kind=sig
+grid 221 52 1
+via 221 52 2 kind=sig
+ENDPATH
+VIAS
+via 92 52 1 kind=sig
+via 221 52 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N11
+name: "ClockLike_11"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 53 0
+end: tsv 232 53 2
+PATH
+grid 25 53 0
+via 93 53 1 kind=sig
+grid 222 53 1
+via 222 53 2 kind=sig
+ENDPATH
+VIAS
+via 93 53 1 kind=sig
+via 222 53 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N12
+name: "ClockLike_12"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 54 0
+end: tsv 233 54 2
+PATH
+grid 20 54 0
+via 94 54 1 kind=sig
+grid 223 54 1
+via 223 54 2 kind=sig
+ENDPATH
+VIAS
+via 94 54 1 kind=sig
+via 223 54 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N13
+name: "ClockLike_13"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 55 0
+end: tsv 234 55 2
+PATH
+grid 21 55 0
+via 95 55 1 kind=sig
+grid 224 55 1
+via 224 55 2 kind=sig
+ENDPATH
+VIAS
+via 95 55 1 kind=sig
+via 224 55 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N14
+name: "ClockLike_14"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 56 0
+end: tsv 228 56 2
+PATH
+grid 22 56 0
+via 96 56 1 kind=sig
+grid 218 56 1
+via 218 56 2 kind=sig
+ENDPATH
+VIAS
+via 96 56 1 kind=sig
+via 218 56 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N15
+name: "ClockLike_15"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 57 0
+end: tsv 229 57 2
+PATH
+grid 23 57 0
+via 97 57 1 kind=sig
+grid 219 57 1
+via 219 57 2 kind=sig
+ENDPATH
+VIAS
+via 97 57 1 kind=sig
+via 219 57 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N16
+name: "ClockLike_16"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 58 0
+end: tsv 230 58 2
+PATH
+grid 24 58 0
+via 98 58 1 kind=sig
+grid 220 58 1
+via 220 58 2 kind=sig
+ENDPATH
+VIAS
+via 98 58 1 kind=sig
+via 220 58 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N17
+name: "ClockLike_17"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 59 0
+end: tsv 231 59 2
+PATH
+grid 25 59 0
+via 99 59 1 kind=sig
+grid 221 59 1
+via 221 59 2 kind=sig
+ENDPATH
+VIAS
+via 99 59 1 kind=sig
+via 221 59 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N18
+name: "ClockLike_18"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 60 0
+end: tsv 232 60 2
+PATH
+grid 20 60 0
+via 100 60 1 kind=sig
+grid 222 60 1
+via 222 60 2 kind=sig
+ENDPATH
+VIAS
+via 100 60 1 kind=sig
+via 222 60 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N19
+name: "ClockLike_19"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 61 0
+end: tsv 233 61 2
+PATH
+grid 21 61 0
+via 101 61 1 kind=sig
+grid 223 61 1
+via 223 61 2 kind=sig
+ENDPATH
+VIAS
+via 101 61 1 kind=sig
+via 223 61 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N20
+name: "ClockLike_20"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 62 0
+end: tsv 234 62 2
+PATH
+grid 22 62 0
+via 92 62 1 kind=sig
+grid 224 62 1
+via 224 62 2 kind=sig
+ENDPATH
+VIAS
+via 92 62 1 kind=sig
+via 224 62 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N21
+name: "ClockLike_21"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 63 0
+end: tsv 228 63 2
+PATH
+grid 23 63 0
+via 93 63 1 kind=sig
+grid 218 63 1
+via 218 63 2 kind=sig
+ENDPATH
+VIAS
+via 93 63 1 kind=sig
+via 218 63 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N22
+name: "ClockLike_22"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 64 0
+end: tsv 229 64 2
+PATH
+grid 24 64 0
+via 94 64 1 kind=sig
+grid 219 64 1
+via 219 64 2 kind=sig
+ENDPATH
+VIAS
+via 94 64 1 kind=sig
+via 219 64 2 kind=sig
+ENDVIAS
+ENDNET
+NET G_CLK_N23
+name: "ClockLike_23"
+gid: "G_CLK"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 65 0
+end: tsv 230 65 2
+PATH
+grid 25 65 0
+via 95 65 1 kind=sig
+grid 220 65 1
+via 220 65 2 kind=sig
+ENDPATH
+VIAS
+via 95 65 1 kind=sig
+via 220 65 2 kind=sig
+ENDVIAS
+ENDNET
+ENDGROUP
+GROUP G_DATA
+name: "DataBus"
+color: "#4D96FF"
+state: "on"
+META
+role: "group_1"
+ENDMETA
+NET G_DATA_N00
+name: "DataBus_00"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 68 0
+end: tsv 228 68 3
+PATH
+grid 20 68 0
+via 92 68 1 kind=sig
+grid 218 68 1
+via 218 68 3 kind=sig
+ENDPATH
+VIAS
+via 92 68 1 kind=sig
+via 218 68 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N01
+name: "DataBus_01"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 69 0
+end: tsv 229 69 3
+PATH
+grid 21 69 0
+via 93 69 1 kind=sig
+grid 219 69 1
+via 219 69 3 kind=sig
+ENDPATH
+VIAS
+via 93 69 1 kind=sig
+via 219 69 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N02
+name: "DataBus_02"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 70 0
+end: tsv 230 70 3
+PATH
+grid 22 70 0
+via 94 70 1 kind=sig
+grid 220 70 1
+via 220 70 3 kind=sig
+ENDPATH
+VIAS
+via 94 70 1 kind=sig
+via 220 70 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N03
+name: "DataBus_03"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 71 0
+end: tsv 231 71 3
+PATH
+grid 23 71 0
+via 95 71 1 kind=sig
+grid 221 71 1
+via 221 71 3 kind=sig
+ENDPATH
+VIAS
+via 95 71 1 kind=sig
+via 221 71 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N04
+name: "DataBus_04"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 72 0
+end: tsv 232 72 3
+PATH
+grid 24 72 0
+via 96 72 1 kind=sig
+grid 222 72 1
+via 222 72 3 kind=sig
+ENDPATH
+VIAS
+via 96 72 1 kind=sig
+via 222 72 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N05
+name: "DataBus_05"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 73 0
+end: tsv 233 73 3
+PATH
+grid 25 73 0
+via 97 73 1 kind=sig
+grid 223 73 1
+via 223 73 3 kind=sig
+ENDPATH
+VIAS
+via 97 73 1 kind=sig
+via 223 73 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N06
+name: "DataBus_06"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 74 0
+end: tsv 234 74 3
+PATH
+grid 20 74 0
+via 98 74 1 kind=sig
+grid 224 74 1
+via 224 74 3 kind=sig
+ENDPATH
+VIAS
+via 98 74 1 kind=sig
+via 224 74 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N07
+name: "DataBus_07"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 75 0
+end: tsv 228 75 3
+PATH
+grid 21 75 0
+via 99 75 1 kind=sig
+grid 218 75 1
+via 218 75 3 kind=sig
+ENDPATH
+VIAS
+via 99 75 1 kind=sig
+via 218 75 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N08
+name: "DataBus_08"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 76 0
+end: tsv 229 76 3
+PATH
+grid 22 76 0
+via 100 76 1 kind=sig
+grid 219 76 1
+via 219 76 3 kind=sig
+ENDPATH
+VIAS
+via 100 76 1 kind=sig
+via 219 76 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N09
+name: "DataBus_09"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 77 0
+end: tsv 230 77 3
+PATH
+grid 23 77 0
+via 101 77 1 kind=sig
+grid 220 77 1
+via 220 77 3 kind=sig
+ENDPATH
+VIAS
+via 101 77 1 kind=sig
+via 220 77 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N10
+name: "DataBus_10"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 78 0
+end: tsv 231 78 3
+PATH
+grid 24 78 0
+via 92 78 1 kind=sig
+grid 221 78 1
+via 221 78 3 kind=sig
+ENDPATH
+VIAS
+via 92 78 1 kind=sig
+via 221 78 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N11
+name: "DataBus_11"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 79 0
+end: tsv 232 79 3
+PATH
+grid 25 79 0
+via 93 79 1 kind=sig
+grid 222 79 1
+via 222 79 3 kind=sig
+ENDPATH
+VIAS
+via 93 79 1 kind=sig
+via 222 79 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N12
+name: "DataBus_12"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 80 0
+end: tsv 233 80 3
+PATH
+grid 20 80 0
+via 94 80 1 kind=sig
+grid 223 80 1
+via 223 80 3 kind=sig
+ENDPATH
+VIAS
+via 94 80 1 kind=sig
+via 223 80 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N13
+name: "DataBus_13"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 81 0
+end: tsv 234 81 3
+PATH
+grid 21 81 0
+via 95 81 1 kind=sig
+grid 224 81 1
+via 224 81 3 kind=sig
+ENDPATH
+VIAS
+via 95 81 1 kind=sig
+via 224 81 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N14
+name: "DataBus_14"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 82 0
+end: tsv 228 82 3
+PATH
+grid 22 82 0
+via 96 82 1 kind=sig
+grid 218 82 1
+via 218 82 3 kind=sig
+ENDPATH
+VIAS
+via 96 82 1 kind=sig
+via 218 82 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N15
+name: "DataBus_15"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 83 0
+end: tsv 229 83 3
+PATH
+grid 23 83 0
+via 97 83 1 kind=sig
+grid 219 83 1
+via 219 83 3 kind=sig
+ENDPATH
+VIAS
+via 97 83 1 kind=sig
+via 219 83 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N16
+name: "DataBus_16"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 84 0
+end: tsv 230 84 3
+PATH
+grid 24 84 0
+via 98 84 1 kind=sig
+grid 220 84 1
+via 220 84 3 kind=sig
+ENDPATH
+VIAS
+via 98 84 1 kind=sig
+via 220 84 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N17
+name: "DataBus_17"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 85 0
+end: tsv 231 85 3
+PATH
+grid 25 85 0
+via 99 85 1 kind=sig
+grid 221 85 1
+via 221 85 3 kind=sig
+ENDPATH
+VIAS
+via 99 85 1 kind=sig
+via 221 85 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N18
+name: "DataBus_18"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 86 0
+end: tsv 232 86 3
+PATH
+grid 20 86 0
+via 100 86 1 kind=sig
+grid 222 86 1
+via 222 86 3 kind=sig
+ENDPATH
+VIAS
+via 100 86 1 kind=sig
+via 222 86 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N19
+name: "DataBus_19"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 87 0
+end: tsv 233 87 3
+PATH
+grid 21 87 0
+via 101 87 1 kind=sig
+grid 223 87 1
+via 223 87 3 kind=sig
+ENDPATH
+VIAS
+via 101 87 1 kind=sig
+via 223 87 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N20
+name: "DataBus_20"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 88 0
+end: tsv 234 88 3
+PATH
+grid 22 88 0
+via 92 88 1 kind=sig
+grid 224 88 1
+via 224 88 3 kind=sig
+ENDPATH
+VIAS
+via 92 88 1 kind=sig
+via 224 88 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N21
+name: "DataBus_21"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 89 0
+end: tsv 228 89 3
+PATH
+grid 23 89 0
+via 93 89 1 kind=sig
+grid 218 89 1
+via 218 89 3 kind=sig
+ENDPATH
+VIAS
+via 93 89 1 kind=sig
+via 218 89 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N22
+name: "DataBus_22"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 90 0
+end: tsv 229 90 3
+PATH
+grid 24 90 0
+via 94 90 1 kind=sig
+grid 219 90 1
+via 219 90 3 kind=sig
+ENDPATH
+VIAS
+via 94 90 1 kind=sig
+via 219 90 3 kind=sig
+ENDVIAS
+ENDNET
+NET G_DATA_N23
+name: "DataBus_23"
+gid: "G_DATA"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 91 0
+end: tsv 230 91 3
+PATH
+grid 25 91 0
+via 95 91 1 kind=sig
+grid 220 91 1
+via 220 91 3 kind=sig
+ENDPATH
+VIAS
+via 95 91 1 kind=sig
+via 220 91 3 kind=sig
+ENDVIAS
+ENDNET
+ENDGROUP
+GROUP G_CTRL
+name: "Control"
+color: "#6BCB77"
+state: "on"
+META
+role: "group_2"
+ENDMETA
+NET G_CTRL_N00
+name: "Control_00"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 94 0
+end: tsv 228 94 4
+PATH
+grid 20 94 0
+via 92 94 1 kind=sig
+grid 218 94 1
+via 218 94 4 kind=sig
+ENDPATH
+VIAS
+via 92 94 1 kind=sig
+via 218 94 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N01
+name: "Control_01"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 95 0
+end: tsv 229 95 4
+PATH
+grid 21 95 0
+via 93 95 1 kind=sig
+grid 219 95 1
+via 219 95 4 kind=sig
+ENDPATH
+VIAS
+via 93 95 1 kind=sig
+via 219 95 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N02
+name: "Control_02"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 96 0
+end: tsv 230 96 4
+PATH
+grid 22 96 0
+via 94 96 1 kind=sig
+grid 220 96 1
+via 220 96 4 kind=sig
+ENDPATH
+VIAS
+via 94 96 1 kind=sig
+via 220 96 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N03
+name: "Control_03"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 97 0
+end: tsv 231 97 4
+PATH
+grid 23 97 0
+via 95 97 1 kind=sig
+grid 221 97 1
+via 221 97 4 kind=sig
+ENDPATH
+VIAS
+via 95 97 1 kind=sig
+via 221 97 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N04
+name: "Control_04"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 98 0
+end: tsv 232 98 4
+PATH
+grid 24 98 0
+via 96 98 1 kind=sig
+grid 222 98 1
+via 222 98 4 kind=sig
+ENDPATH
+VIAS
+via 96 98 1 kind=sig
+via 222 98 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N05
+name: "Control_05"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 99 0
+end: tsv 233 99 4
+PATH
+grid 25 99 0
+via 97 99 1 kind=sig
+grid 223 99 1
+via 223 99 4 kind=sig
+ENDPATH
+VIAS
+via 97 99 1 kind=sig
+via 223 99 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N06
+name: "Control_06"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 100 0
+end: tsv 234 100 4
+PATH
+grid 20 100 0
+via 98 100 1 kind=sig
+grid 224 100 1
+via 224 100 4 kind=sig
+ENDPATH
+VIAS
+via 98 100 1 kind=sig
+via 224 100 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N07
+name: "Control_07"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 101 0
+end: tsv 228 101 4
+PATH
+grid 21 101 0
+via 99 101 1 kind=sig
+grid 218 101 1
+via 218 101 4 kind=sig
+ENDPATH
+VIAS
+via 99 101 1 kind=sig
+via 218 101 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N08
+name: "Control_08"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 102 0
+end: tsv 229 102 4
+PATH
+grid 22 102 0
+via 100 102 1 kind=sig
+grid 219 102 1
+via 219 102 4 kind=sig
+ENDPATH
+VIAS
+via 100 102 1 kind=sig
+via 219 102 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N09
+name: "Control_09"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 103 0
+end: tsv 230 103 4
+PATH
+grid 23 103 0
+via 101 103 1 kind=sig
+grid 220 103 1
+via 220 103 4 kind=sig
+ENDPATH
+VIAS
+via 101 103 1 kind=sig
+via 220 103 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N10
+name: "Control_10"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 104 0
+end: tsv 231 104 4
+PATH
+grid 24 104 0
+via 92 104 1 kind=sig
+grid 221 104 1
+via 221 104 4 kind=sig
+ENDPATH
+VIAS
+via 92 104 1 kind=sig
+via 221 104 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N11
+name: "Control_11"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 105 0
+end: tsv 232 105 4
+PATH
+grid 25 105 0
+via 93 105 1 kind=sig
+grid 222 105 1
+via 222 105 4 kind=sig
+ENDPATH
+VIAS
+via 93 105 1 kind=sig
+via 222 105 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N12
+name: "Control_12"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 106 0
+end: tsv 233 106 4
+PATH
+grid 20 106 0
+via 94 106 1 kind=sig
+grid 223 106 1
+via 223 106 4 kind=sig
+ENDPATH
+VIAS
+via 94 106 1 kind=sig
+via 223 106 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N13
+name: "Control_13"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 107 0
+end: tsv 234 107 4
+PATH
+grid 21 107 0
+via 95 107 1 kind=sig
+grid 224 107 1
+via 224 107 4 kind=sig
+ENDPATH
+VIAS
+via 95 107 1 kind=sig
+via 224 107 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N14
+name: "Control_14"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 108 0
+end: tsv 228 108 4
+PATH
+grid 22 108 0
+via 96 108 1 kind=sig
+grid 218 108 1
+via 218 108 4 kind=sig
+ENDPATH
+VIAS
+via 96 108 1 kind=sig
+via 218 108 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N15
+name: "Control_15"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 109 0
+end: tsv 229 109 4
+PATH
+grid 23 109 0
+via 97 109 1 kind=sig
+grid 219 109 1
+via 219 109 4 kind=sig
+ENDPATH
+VIAS
+via 97 109 1 kind=sig
+via 219 109 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N16
+name: "Control_16"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 110 0
+end: tsv 230 110 4
+PATH
+grid 24 110 0
+via 98 110 1 kind=sig
+grid 220 110 1
+via 220 110 4 kind=sig
+ENDPATH
+VIAS
+via 98 110 1 kind=sig
+via 220 110 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N17
+name: "Control_17"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 111 0
+end: tsv 231 111 4
+PATH
+grid 25 111 0
+via 99 111 1 kind=sig
+grid 221 111 1
+via 221 111 4 kind=sig
+ENDPATH
+VIAS
+via 99 111 1 kind=sig
+via 221 111 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N18
+name: "Control_18"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 112 0
+end: tsv 232 112 4
+PATH
+grid 20 112 0
+via 100 112 1 kind=sig
+grid 222 112 1
+via 222 112 4 kind=sig
+ENDPATH
+VIAS
+via 100 112 1 kind=sig
+via 222 112 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N19
+name: "Control_19"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 113 0
+end: tsv 233 113 4
+PATH
+grid 21 113 0
+via 101 113 1 kind=sig
+grid 223 113 1
+via 223 113 4 kind=sig
+ENDPATH
+VIAS
+via 101 113 1 kind=sig
+via 223 113 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N20
+name: "Control_20"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 114 0
+end: tsv 234 114 4
+PATH
+grid 22 114 0
+via 92 114 1 kind=sig
+grid 224 114 1
+via 224 114 4 kind=sig
+ENDPATH
+VIAS
+via 92 114 1 kind=sig
+via 224 114 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N21
+name: "Control_21"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 115 0
+end: tsv 228 115 4
+PATH
+grid 23 115 0
+via 93 115 1 kind=sig
+grid 218 115 1
+via 218 115 4 kind=sig
+ENDPATH
+VIAS
+via 93 115 1 kind=sig
+via 218 115 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N22
+name: "Control_22"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 116 0
+end: tsv 229 116 4
+PATH
+grid 24 116 0
+via 94 116 1 kind=sig
+grid 219 116 1
+via 219 116 4 kind=sig
+ENDPATH
+VIAS
+via 94 116 1 kind=sig
+via 219 116 4 kind=sig
+ENDVIAS
+ENDNET
+NET G_CTRL_N23
+name: "Control_23"
+gid: "G_CTRL"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 117 0
+end: tsv 230 117 4
+PATH
+grid 25 117 0
+via 95 117 1 kind=sig
+grid 220 117 1
+via 220 117 4 kind=sig
+ENDPATH
+VIAS
+via 95 117 1 kind=sig
+via 220 117 4 kind=sig
+ENDVIAS
+ENDNET
+ENDGROUP
+GROUP G_MISC
+name: "Misc"
+color: "#FFD93D"
+state: "on"
+META
+role: "group_3"
+ENDMETA
+NET G_MISC_N00
+name: "Misc_00"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 120 0
+end: tsv 228 120 5
+PATH
+grid 20 120 0
+via 92 120 1 kind=sig
+grid 218 120 1
+via 218 120 5 kind=sig
+ENDPATH
+VIAS
+via 92 120 1 kind=sig
+via 218 120 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N01
+name: "Misc_01"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 121 0
+end: tsv 229 121 5
+PATH
+grid 21 121 0
+via 93 121 1 kind=sig
+grid 219 121 1
+via 219 121 5 kind=sig
+ENDPATH
+VIAS
+via 93 121 1 kind=sig
+via 219 121 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N02
+name: "Misc_02"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 122 0
+end: tsv 230 122 5
+PATH
+grid 22 122 0
+via 94 122 1 kind=sig
+grid 220 122 1
+via 220 122 5 kind=sig
+ENDPATH
+VIAS
+via 94 122 1 kind=sig
+via 220 122 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N03
+name: "Misc_03"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 123 0
+end: tsv 231 123 5
+PATH
+grid 23 123 0
+via 95 123 1 kind=sig
+grid 221 123 1
+via 221 123 5 kind=sig
+ENDPATH
+VIAS
+via 95 123 1 kind=sig
+via 221 123 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N04
+name: "Misc_04"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 124 0
+end: tsv 232 124 5
+PATH
+grid 24 124 0
+via 96 124 1 kind=sig
+grid 222 124 1
+via 222 124 5 kind=sig
+ENDPATH
+VIAS
+via 96 124 1 kind=sig
+via 222 124 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N05
+name: "Misc_05"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 125 0
+end: tsv 233 125 5
+PATH
+grid 25 125 0
+via 97 125 1 kind=sig
+grid 223 125 1
+via 223 125 5 kind=sig
+ENDPATH
+VIAS
+via 97 125 1 kind=sig
+via 223 125 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N06
+name: "Misc_06"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 126 0
+end: tsv 234 126 5
+PATH
+grid 20 126 0
+via 98 126 1 kind=sig
+grid 224 126 1
+via 224 126 5 kind=sig
+ENDPATH
+VIAS
+via 98 126 1 kind=sig
+via 224 126 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N07
+name: "Misc_07"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 127 0
+end: tsv 228 127 5
+PATH
+grid 21 127 0
+via 99 127 1 kind=sig
+grid 218 127 1
+via 218 127 5 kind=sig
+ENDPATH
+VIAS
+via 99 127 1 kind=sig
+via 218 127 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N08
+name: "Misc_08"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 128 0
+end: tsv 229 128 5
+PATH
+grid 22 128 0
+via 100 128 1 kind=sig
+grid 219 128 1
+via 219 128 5 kind=sig
+ENDPATH
+VIAS
+via 100 128 1 kind=sig
+via 219 128 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N09
+name: "Misc_09"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 129 0
+end: tsv 230 129 5
+PATH
+grid 23 129 0
+via 101 129 1 kind=sig
+grid 220 129 1
+via 220 129 5 kind=sig
+ENDPATH
+VIAS
+via 101 129 1 kind=sig
+via 220 129 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N10
+name: "Misc_10"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 130 0
+end: tsv 231 130 5
+PATH
+grid 24 130 0
+via 92 130 1 kind=sig
+grid 221 130 1
+via 221 130 5 kind=sig
+ENDPATH
+VIAS
+via 92 130 1 kind=sig
+via 221 130 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N11
+name: "Misc_11"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 131 0
+end: tsv 232 131 5
+PATH
+grid 25 131 0
+via 93 131 1 kind=sig
+grid 222 131 1
+via 222 131 5 kind=sig
+ENDPATH
+VIAS
+via 93 131 1 kind=sig
+via 222 131 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N12
+name: "Misc_12"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 132 0
+end: tsv 233 132 5
+PATH
+grid 20 132 0
+via 94 132 1 kind=sig
+grid 223 132 1
+via 223 132 5 kind=sig
+ENDPATH
+VIAS
+via 94 132 1 kind=sig
+via 223 132 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N13
+name: "Misc_13"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 133 0
+end: tsv 234 133 5
+PATH
+grid 21 133 0
+via 95 133 1 kind=sig
+grid 224 133 1
+via 224 133 5 kind=sig
+ENDPATH
+VIAS
+via 95 133 1 kind=sig
+via 224 133 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N14
+name: "Misc_14"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 134 0
+end: tsv 228 134 5
+PATH
+grid 22 134 0
+via 96 134 1 kind=sig
+grid 218 134 1
+via 218 134 5 kind=sig
+ENDPATH
+VIAS
+via 96 134 1 kind=sig
+via 218 134 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N15
+name: "Misc_15"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 135 0
+end: tsv 229 135 5
+PATH
+grid 23 135 0
+via 97 135 1 kind=sig
+grid 219 135 1
+via 219 135 5 kind=sig
+ENDPATH
+VIAS
+via 97 135 1 kind=sig
+via 219 135 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N16
+name: "Misc_16"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 136 0
+end: tsv 230 136 5
+PATH
+grid 24 136 0
+via 98 136 1 kind=sig
+grid 220 136 1
+via 220 136 5 kind=sig
+ENDPATH
+VIAS
+via 98 136 1 kind=sig
+via 220 136 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N17
+name: "Misc_17"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 137 0
+end: tsv 231 137 5
+PATH
+grid 25 137 0
+via 99 137 1 kind=sig
+grid 221 137 1
+via 221 137 5 kind=sig
+ENDPATH
+VIAS
+via 99 137 1 kind=sig
+via 221 137 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N18
+name: "Misc_18"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 8 138 0
+end: tsv 232 138 5
+PATH
+grid 20 138 0
+via 100 138 1 kind=sig
+grid 222 138 1
+via 222 138 5 kind=sig
+ENDPATH
+VIAS
+via 100 138 1 kind=sig
+via 222 138 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N19
+name: "Misc_19"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 9 139 0
+end: tsv 233 139 5
+PATH
+grid 21 139 0
+via 101 139 1 kind=sig
+grid 223 139 1
+via 223 139 5 kind=sig
+ENDPATH
+VIAS
+via 101 139 1 kind=sig
+via 223 139 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N20
+name: "Misc_20"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 10 140 0
+end: tsv 234 140 5
+PATH
+grid 22 140 0
+via 92 140 1 kind=sig
+grid 224 140 1
+via 224 140 5 kind=sig
+ENDPATH
+VIAS
+via 92 140 1 kind=sig
+via 224 140 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N21
+name: "Misc_21"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 11 141 0
+end: tsv 228 141 5
+PATH
+grid 23 141 0
+via 93 141 1 kind=sig
+grid 218 141 1
+via 218 141 5 kind=sig
+ENDPATH
+VIAS
+via 93 141 1 kind=sig
+via 218 141 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N22
+name: "Misc_22"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 12 142 0
+end: tsv 229 142 5
+PATH
+grid 24 142 0
+via 94 142 1 kind=sig
+grid 219 142 1
+via 219 142 5 kind=sig
+ENDPATH
+VIAS
+via 94 142 1 kind=sig
+via 219 142 5 kind=sig
+ENDVIAS
+ENDNET
+NET G_MISC_N23
+name: "Misc_23"
+gid: "G_MISC"
+enabled: true
+bendCount: 3
+pathLen: 0
+start: bump 13 143 0
+end: tsv 230 143 5
+PATH
+grid 25 143 0
+via 95 143 1 kind=sig
+grid 220 143 1
+via 220 143 5 kind=sig
+ENDPATH
+VIAS
+via 95 143 1 kind=sig
+via 220 143 5 kind=sig
+ENDVIAS
+ENDNET
+ENDGROUP

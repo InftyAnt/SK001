@@ -17,32 +17,27 @@ const scenes = new Map();
 let activeSceneId = DEFAULT_SCENE_ID;
 let activeScene = null;
 
-/* 2. Camera Setup */
-const maincamera = new THREE.PerspectiveCamera(
-	60,
-	window.innerWidth / window.innerHeight,
-	0.1,
-	1000
+/* Section. */
+// Note.
+	60, // fov
+	window.innerWidth / window.innerHeight, // Note.
+	1000 // far
 );
 maincamera.position.set(2, 2, 2);
 
-const aspect = window.innerWidth / window.innerHeight;
-const frustumSize = 4;
+// Note.
+const frustumSize = 4
 const topviewcamera = new THREE.OrthographicCamera(
-	-(frustumSize * aspect) / 2,
-	(frustumSize * aspect) / 2,
-	frustumSize / 2,
-	-frustumSize / 2,
-	0.1,
-	100000
+	-(frustumSize * aspect) / 2, // Note.
+	100000 // Note.
 );
 topviewcamera.position.set(2, 2, 2);
 
-let camera = maincamera;
+// Note.
 
-/* 3. Renderer Setup */
+/* Section. */
 const LEGACY_PIXEL_RATIO_CAP = 2.0;
-const RENDER_PIXEL_RATIO_CAP = 1.25; // Cap pixel ratio to keep camera motion smooth.
+const RENDER_PIXEL_RATIO_CAP = 1.25; // Note.
 const FPS_BOOST_RATIO_EST = (LEGACY_PIXEL_RATIO_CAP / RENDER_PIXEL_RATIO_CAP) ** 2;
 const CAMERA_SPEED_COMPENSATION = 1 / FPS_BOOST_RATIO_EST;
 const TOPVIEW_MOVE_SPEED_MULTIPLIER = 1.5;
@@ -54,33 +49,17 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, RENDER_PIXEL_RATIO_CAP));
 document.body.appendChild(renderer.domElement);
-const TOPVIEW_RULER_BREADTH_PX = 44;
-const TOPVIEW_RULER_MINOR_MIN_PX = 18;
-const TOPVIEW_RULER_MAJOR_MIN_PX = 78;
-const topViewRulerOverlayEl = document.createElement("div");
-topViewRulerOverlayEl.className = "topview-ruler-overlay";
-topViewRulerOverlayEl.hidden = true;
-topViewRulerOverlayEl.innerHTML = [
-	'<div class = "topview-ruler-corner" aria-hidden = "true"></div>',
-	'<div class = "topview-ruler-track top" aria-hidden = "true"></div>',
-	'<div class = "topview-ruler-track left" aria-hidden = "true"></div>',
-].join("");
-document.body.appendChild(topViewRulerOverlayEl);
-const topViewRulerCornerEl = topViewRulerOverlayEl.querySelector(".topview-ruler-corner");
-const topViewRulerTopEl = topViewRulerOverlayEl.querySelector(".topview-ruler-track.top");
-const topViewRulerLeftEl = topViewRulerOverlayEl.querySelector(".topview-ruler-track.left");
-const topViewRulerState = { key : "", visible : false };
 
-/* 4. Camera Controls */
-const mainControls = new OrbitControls(maincamera, renderer.domElement);
+/* Section. */
+// Note.
 mainControls.enableDamping = false;
 mainControls.enabled = true;
 
-const topviewControls = new OrbitControls(topviewcamera, renderer.domElement);
+// Note.
 topviewControls.enableDamping = false;
 topviewControls.enabled = false;
 
-// Keep camera interaction speed consistent after reducing pixel ratio.
+// Note.
 mainControls.rotateSpeed *= CAMERA_SPEED_COMPENSATION;
 mainControls.panSpeed *= CAMERA_SPEED_COMPENSATION;
 mainControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
@@ -91,9 +70,9 @@ topviewControls.panSpeed *= CAMERA_SPEED_COMPENSATION * TOPVIEW_MOVE_SPEED_MULTI
 topviewControls.zoomSpeed *= CAMERA_SPEED_COMPENSATION;
 topviewControls.autoRotateSpeed *= CAMERA_SPEED_COMPENSATION;
 
-let controls = mainControls;
+// Note.
 
-/* 5. Additional Setup */
+/* Section. */
 
 /* Section. */
 // Note.
@@ -164,8 +143,7 @@ const relayedMainFlipPointerEvents = new WeakSet();
 
 const TOPVIEW_PAN_PIXELS_PER_SEC = 500 * CAMERA_SPEED_COMPENSATION * TOPVIEW_MOVE_SPEED_MULTIPLIER;
 const TOPVIEW_MIN_GRID_PIXEL_SPACING = 6;
-const TOPVIEW_TARGET_GRID_PIXEL_SPACING = 18;
-const TOPVIEW_MAX_GRID_LINE_COUNT = 1800;
+const TOPVIEW_TARGET_GRID_PIXEL_SPACING = 11;
 const MAINVIEW_MIN_GRID_PIXEL_SPACING = 3;
 const MAINVIEW_TARGET_GRID_PIXEL_SPACING = 12;
 const MAINVIEW_MIN_ABS_VIEW_Z_FOR_GRID = 0.02;
@@ -250,7 +228,7 @@ function updateTopViewPan(dt) {
 
 	const screenH = Math.max(1, renderer.domElement.clientHeight || window.innerHeight || 1);
 	const worldPerPixel = (topviewcamera.top - topviewcamera.bottom) / (screenH * topviewcamera.zoom);
-	const safeDt = Math.min(dt, 1 / 60); // Clamp delta time to avoid large animation jumps.
+	const safeDt = Math.min(dt, 1 / 60); // Note.
 	const panDist = TOPVIEW_PAN_PIXELS_PER_SEC * worldPerPixel * safeDt;
 
 	const move = new THREE.Vector3(dx * panDist, dy * panDist, 0);
@@ -288,7 +266,7 @@ function updateMainCameraMove(dt) {
 	if (forwardAxis !== 0) maincamMoveDelta.addScaledVector(maincamMoveForward, forwardAxis);
 	if (strafeAxis !== 0) maincamMoveDelta.addScaledVector(maincamMoveRight, strafeAxis);
 
-	const safeDt = Math.min(dt, 1 / 60); // Clamp delta time to avoid large animation jumps.
+	const safeDt = Math.min(dt, 1 / 60);
 	if (maincamMoveDelta.lengthSq() > 1e-9) {
 		maincamMoveDelta.normalize().multiplyScalar(moveUnitsPerSec * safeDt);
 	}
@@ -314,7 +292,7 @@ window.addEventListener("blur", () => {
 });
 
 // Note.
-mainControls.autoRotateSpeed = 1.0; // Keep the default auto-rotate speed.
+mainControls.autoRotateSpeed = 1.0; // Note.
 
 mainControls.addEventListener("start", () => {
   isMainControlsInteracting = true;
@@ -531,8 +509,6 @@ function makeDefaultLayerTopState(design, layerIndex) {
 		pos : [0, 0, z + D],
 		target : [0, 0, z],
 
-		zoom : zMin,
-
 		// Note.
 
 		// Note.
@@ -547,8 +523,7 @@ function computeFitZoomForDesign(design) {
 	const h = (design.ny - 1) * design.dy;
 
 	const aspect = window.innerWidth / window.innerHeight;
-	const frustumW = frustumSize * aspect; // Visible world width.
-	const frustumH = frustumSize; // Visible world height.
+	const frustumW = frustumSize * aspect; // Note.
 
 	const eps = 1e-9;
 	const ww = Math.max(Math.abs(w), eps);
@@ -570,7 +545,7 @@ function makeInitialViewForCtx(designOrNull) {
 		active : "persp",		// "persp" | "ortho"
 		activeLayer : 0,
 		main : base.main,
-		top : base.top, // Fallback when no design is loaded.
+		top : base.top, // Note.
 		layers : [],
 	};
 	
@@ -627,7 +602,6 @@ function captureViewState() {
 	};
 
 	// Note.
-	const curTop = {
 		pos : topviewcamera.position.toArray(),
 		target : topviewControls.target.toArray(),
 		zoom : topviewcamera.zoom,
@@ -687,7 +661,6 @@ function applyViewState(v) {
 	}
 
 	// Note.
-	setActiveCameraKind(v.active);
 
 	// Note.
 	if (v.main) {
@@ -817,7 +790,7 @@ async function addTextFilesAsScenes(files) {
 		let design = null;
 		try {
 			design = parseDesignText(rawText);
-			applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 }); // Scene style defaults for loaded designs.
+			applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 }); // Note.
 		} catch (err) {
 			console.error("[parse/apply failed]", file.name, err);
 			addPlaceholderCube(s, hashColor24(file.name));
@@ -868,7 +841,7 @@ function addEmptyProjectScene(spec) {
 	const s = createBaseScene();
 	const rawText = buildEmptyProjectDesignText(spec);
 	const design = parseDesignText(rawText);
-	applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 }); // Scene style defaults for loaded designs.
+	applyDesignToScene(s, design, { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 });
 
 	const name = String(spec.name ?? "").trim() || `Project ${sceneSeq}`;
 	const projectMeta = {
@@ -1174,223 +1147,6 @@ function updateTopGridHoverIndicator(activeCam) {
 	mesh.visible = true;
 }
 
-function setTopViewRulerVisible(visible) {
-	const show = !!visible;
-	if (topViewRulerOverlayEl.hidden === !show && topViewRulerState.visible === show) return;
-	if (!show) {
-		topViewRulerOverlayEl.hidden = true;
-		if (topViewRulerTopEl) topViewRulerTopEl.innerHTML = "";
-		if (topViewRulerLeftEl) topViewRulerLeftEl.innerHTML = "";
-		topViewRulerState.key = "";
-		topViewRulerState.visible = false;
-		return;
-	}
-	topViewRulerOverlayEl.hidden = false;
-	topViewRulerState.visible = true;
-}
-
-function getTopViewRulerStep(rawStep) {
-	const target = Math.max(1, Math.ceil(Number.isFinite(rawStep) ? rawStep : 1));
-	let magnitude = 1;
-	while (magnitude * 10 < target) magnitude *= 10;
-	for (const base of [1, 2, 5, 10]) {
-		const step = base * magnitude;
-		if (step >= target) return step;
-	}
-	return target;
-}
-
-function formatTopViewRulerCoordinate(value, pitch) {
-	const _pitch = pitch;
-	void _pitch;
-	const numeric = Number(value);
-	if (!Number.isFinite(numeric)) return "0";
-
-	const rounded = Math.round((numeric + Number.EPSILON) * 100) / 100;
-	if (Math.abs(rounded) >= 10000) {
-		return rounded.toExponential(2).replace(/e\+?(-?)0*(\d+)/, 'e$1$2');
-	}
-
-	let text = rounded.toFixed(2).replace(/\.?0+$/, "");
-	if (text === "-0") text = "0";
-	return text;
-}
-
-function getTopViewRulerWorldStep(pitch, worldPerPixel, minPixelSpacing) {
-	const baseStep = Math.max(1e-9, Math.abs(Number(pitch) || 0) * 0.5);
-	const raw = Math.max(baseStep, Math.abs(Number(worldPerPixel) || 0) * Math.max(1, Number(minPixelSpacing) || 1));
-	return getTopViewRulerStep(raw / baseStep) * baseStep;
-}
-
-function buildTopViewRulerAxisHtml({
-	rangeMin,
-	rangeMax,
-	rangeSpan,
-	anchorValue,
-	minorStep,
-	majorStep,
-	formatPitch,
-	axis,
-}) {
-	if (!Number.isFinite(rangeSpan) || rangeSpan <= 0) return "";
-	const isLeft = axis === "left";
-	const posProp = isLeft ? "top" : "left";
-	const safeMinorStep = Math.max(1e-9, Math.abs(Number(minorStep) || 0));
-	const safeMajorStep = Math.max(safeMinorStep, Math.abs(Number(majorStep) || 0));
-	const anchor = Number.isFinite(anchorValue) ? anchorValue : 0;
-	let html = "";
-
-	const appendTicks = (step, major) => {
-		const startN = Math.ceil((rangeMin - anchor) / step);
-		const endN = Math.floor((rangeMax - anchor) / step);
-		for (let n = startN; n <= endN; n++) {
-			const value = anchor + n * step;
-			const ratioBase = (value - rangeMin) / rangeSpan;
-			const ratio = isLeft ? (1 - ratioBase) : ratioBase;
-			if (!Number.isFinite(ratio) || ratio < -0.01 || ratio > 1.01) continue;
-			const pct = Math.max(0, Math.min(100, ratio * 100));
-			const klass = major ? `topview-ruler-tick ${axis} major` : `topview-ruler-tick ${axis}`;
-			html += `<div class = "${klass}" style = "${posProp} : ${pct.toFixed(4)}%;"></div>`;
-			if (major) {
-				const label = escapeHtml(formatTopViewRulerCoordinate(value, formatPitch));
-				html += `<div class = "topview-ruler-label ${axis}" style = "${posProp} : ${pct.toFixed(4)}%;">${label}</div>`;
-			}
-		}
-	};
-
-	appendTicks(safeMinorStep, false);
-	appendTicks(safeMajorStep, true);
-	return html;
-}
-
-function updateTopViewRulerOverlay(activeCam) {
-	const ctx = scenes.get(activeSceneId);
-	const design = ctx?.design;
-	if (!activeCam?.isOrthographicCamera || !design || !topViewRulerTopEl || !topViewRulerLeftEl || !topViewRulerCornerEl) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const dx = Number(design.dx);
-	const dy = Number(design.dy);
-	const nx = Math.max(1, Number(design.nx) | 0);
-	const ny = Math.max(1, Number(design.ny) | 0);
-	if (!Number.isFinite(dx) || dx <= 0 || !Number.isFinite(dy) || dy <= 0 || nx <= 0 || ny <= 0) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const rect = renderer.domElement.getBoundingClientRect();
-	if (rect.width <= 0 || rect.height <= 0) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const leftUiRect = document.getElementById("ui-left")?.getBoundingClientRect?.();
-	const rightUiRect = document.getElementById("ui-right")?.getBoundingClientRect?.();
-	const leftInset = Math.max(0, Math.min(window.innerWidth, Math.ceil(leftUiRect?.right ?? 0)));
-	const rightInset = Math.max(0, Math.min(window.innerWidth, Math.ceil(window.innerWidth - (rightUiRect?.left ?? window.innerWidth))));
-	const topTrackLeft = leftInset + TOPVIEW_RULER_BREADTH_PX;
-	const topTrackRight = rightInset;
-	const leftTrackLeft = leftInset;
-	const availableTopWidth = window.innerWidth - topTrackLeft - topTrackRight;
-	const availableLeftHeight = window.innerHeight - TOPVIEW_RULER_BREADTH_PX;
-	if (availableTopWidth <= 64 || availableLeftHeight <= 64) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const zoom = Math.max(1e-9, Number(activeCam.zoom) || 0);
-	const worldWidth = Math.abs(activeCam.right - activeCam.left) / zoom;
-	const worldHeight = Math.abs(activeCam.top - activeCam.bottom) / zoom;
-	if (!Number.isFinite(worldWidth) || worldWidth <= 0 || !Number.isFinite(worldHeight) || worldHeight <= 0) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const centerX = Number(topviewControls.target?.x) || 0;
-	const centerY = Number(topviewControls.target?.y) || 0;
-	const fullMinX = centerX - worldWidth * 0.5;
-	const fullMaxX = centerX + worldWidth * 0.5;
-	const fullMinY = centerY - worldHeight * 0.5;
-	const fullMaxY = centerY + worldHeight * 0.5;
-	const topTrackStartPx = Math.max(0, Math.min(rect.width, topTrackLeft - rect.left));
-	const topTrackEndPx = Math.max(0, Math.min(rect.width, (window.innerWidth - topTrackRight) - rect.left));
-	const leftTrackTopPx = Math.max(0, Math.min(rect.height, TOPVIEW_RULER_BREADTH_PX - rect.top));
-	const leftTrackBottomPx = Math.max(0, Math.min(rect.height, window.innerHeight - rect.top));
-	if (topTrackEndPx <= topTrackStartPx || leftTrackBottomPx <= leftTrackTopPx) {
-		setTopViewRulerVisible(false);
-		return;
-	}
-
-	const minX = fullMinX + (topTrackStartPx / rect.width) * worldWidth;
-	const maxX = fullMinX + (topTrackEndPx / rect.width) * worldWidth;
-	const maxY = fullMaxY - (leftTrackTopPx / rect.height) * worldHeight;
-	const minY = fullMaxY - (leftTrackBottomPx / rect.height) * worldHeight;
-
-	const worldPerPixelX = worldWidth / Math.max(1, rect.width);
-	const worldPerPixelY = worldHeight / Math.max(1, rect.height);
-	const minorStepX = getTopViewRulerWorldStep(dx, worldPerPixelX, TOPVIEW_RULER_MINOR_MIN_PX);
-	const majorStepX = getTopViewRulerWorldStep(dx, worldPerPixelX, TOPVIEW_RULER_MAJOR_MIN_PX);
-	const minorStepY = getTopViewRulerWorldStep(dy, worldPerPixelY, TOPVIEW_RULER_MINOR_MIN_PX);
-	const majorStepY = getTopViewRulerWorldStep(dy, worldPerPixelY, TOPVIEW_RULER_MAJOR_MIN_PX);
-	const layerIndex = Math.max(0, Math.min((ctx?.view?.activeLayer ?? 0) | 0, Math.max(0, (Number(design.nlayer) | 0) - 1)));
-
-	const nextKey = [
-		activeSceneId,
-		layerIndex,
-		leftInset,
-		rightInset,
-		window.innerHeight,
-		centerX.toFixed(4),
-		centerY.toFixed(4),
-		minX.toFixed(4),
-		maxX.toFixed(4),
-		minY.toFixed(4),
-		maxY.toFixed(4),
-		minorStepX.toFixed(4),
-		majorStepX.toFixed(4),
-		minorStepY.toFixed(4),
-		majorStepY.toFixed(4),
-	].join("|");
-	if (topViewRulerState.visible && topViewRulerState.key === nextKey) return;
-
-	setTopViewRulerVisible(true);
-	topViewRulerState.key = nextKey;
-
-	topViewRulerCornerEl.style.left = `${leftTrackLeft}px`;
-	topViewRulerCornerEl.style.width = `${TOPVIEW_RULER_BREADTH_PX}px`;
-	topViewRulerCornerEl.style.height = `${TOPVIEW_RULER_BREADTH_PX}px`;
-
-	topViewRulerTopEl.style.left = `${topTrackLeft}px`;
-	topViewRulerTopEl.style.right = `${topTrackRight}px`;
-	topViewRulerTopEl.style.height = `${TOPVIEW_RULER_BREADTH_PX}px`;
-	topViewRulerLeftEl.style.left = `${leftTrackLeft}px`;
-	topViewRulerLeftEl.style.top = `${TOPVIEW_RULER_BREADTH_PX}px`;
-	topViewRulerLeftEl.style.width = `${TOPVIEW_RULER_BREADTH_PX}px`;
-
-	topViewRulerTopEl.innerHTML = buildTopViewRulerAxisHtml({
-		rangeMin : minX,
-		rangeMax : maxX,
-		rangeSpan : Math.max(1e-9, maxX - minX),
-		anchorValue : 0,
-		minorStep : minorStepX,
-		majorStep : majorStepX,
-		formatPitch : dx * 0.5,
-		axis : "top",
-	});
-	topViewRulerLeftEl.innerHTML = buildTopViewRulerAxisHtml({
-		rangeMin : minY,
-		rangeMax : maxY,
-		rangeSpan : Math.max(1e-9, maxY - minY),
-		anchorValue : 0,
-		minorStep : minorStepY,
-		majorStep : majorStepY,
-		formatPitch : dy * 0.5,
-		axis : "left",
-	});
-}
-
 function getDesignRenderOpts(ctx) {
 	if (!ctx) return { planeColor : 0x404040, planeOpacity : 0.0, gridLineColor : 0x575757, gridLineOpacity : 0.32 };
 	if (!ctx.ui) ctx.ui = {};
@@ -1455,6 +1211,7 @@ function escapeHtml(str) {
 function setNetInfoPanelContent(info) {
 	if (!netInfoPanelEl) return;
 	if (!info) {
+		netInfoPanelEl.textContent = "No net is selected yet. Click near a net in the viewport.";
 		netInfoPanelEl.textContent = NET_INFO_EMPTY_TEXT;
 		return;
 	}
@@ -2161,6 +1918,8 @@ function renderGroupTree() {
 		const empty = document.createElement("div");
 		empty.className = "group-tree-empty";
 		empty.textContent = "Load a design to show the group/net visibility tree.";
+		empty.textContent = "Load a design to show the group/net visibility tree.";
+		empty.textContent = "Load a design to show the group/net visibility tree.";
 		groupTreeEl.appendChild(empty);
 		return;
 	}
@@ -2180,6 +1939,11 @@ function renderGroupTree() {
 		exp.className = "group-expand";
 		exp.dataset.role = "group-expand";
 		exp.dataset.gidx = String(gIdx);
+		exp.textContent = open ? "v" : ">";
+		exp.title = open ? "Collapse" : "Expand";
+		exp.textContent = open ? "v" : ">";
+		exp.title = open ? "Collapse" : "Expand";
+
 		exp.textContent = open ? "v" : ">";
 		exp.title = open ? "Collapse" : "Expand";
 		const chk = document.createElement("input");
@@ -2220,6 +1984,8 @@ function renderGroupTree() {
 				nFocus.dataset.gidx = String(gIdx);
 				nFocus.dataset.nidx = String(nIdx);
 				nFocus.textContent = "Focus";
+				nFocus.title = "Focus camera on this net and select it";
+				nFocus.title = "Focus camera on this net and select it";
 				nFocus.title = "Focus camera on this net and select it";
 				nFocus.disabled = !net.enabled;
 				nRow.append(nChk, nLabel, nFocus);
@@ -2738,8 +2504,7 @@ function resetTopViewToInitial() {
 	const design = ctx?.design;
 	if (!ctx || !design) return;
 
-	// Clamp the active layer index.
-	const L = Math.max(0, Math.min((ctx.view?.activeLayer ?? 0) | 0, design.nlayer - 1));
+	// Note.
 
 	// Note.
 	const st = makeDefaultLayerTopState(design, L);
@@ -2817,8 +2582,7 @@ function resetActiveCameraView() {
 }
 
 /* Section. */
-// 8-A. After camera toggle, sync viewport and zoom UI.
-function afterToggleCamera() {
+// Note.
 	syncMainViewportYFlip();
 	onResize();
 	zoomUI.syncSliderFromView();
@@ -2841,8 +2605,7 @@ function toggleCamera() {
 	afterToggleCamera();
 }
 
-// 8-D. Keyboard input for camera movement.
-window.addEventListener("keydown", (e) => {
+// Note.
 	const isTyping = isTypingElement(document.activeElement);
 	if (!isTyping) {
 		const panDir = getTopViewPanDirFromKey(e.code);
@@ -2902,7 +2665,7 @@ window.addEventListener("keydown", (e) => {
 	}
 });
 
-function _updateAdaptiveGridVisibilityLegacy(scene, activeCam) {
+function updateAdaptiveGridVisibility(scene, activeCam) {
 	const root = scene?.userData?.designRoot;
 	const lines = root?.userData?.gridLineMeshes;
 	const gridPitch = root?.userData?.gridPitch;
@@ -2965,128 +2728,6 @@ function _updateAdaptiveGridVisibilityLegacy(scene, activeCam) {
 }
 
 /* Section. */
-function getGridLodLevels(root) {
-	const levels = root?.userData?.gridLineLodLevels;
-	if (Array.isArray(levels) && levels.length > 0) return levels;
-
-	const baseMeshes = root?.userData?.gridLineMeshes;
-	if (!Array.isArray(baseMeshes) || baseMeshes.length === 0) return [];
-	const baseStep = Math.max(1, Number(root?.userData?.gridLineCurrentStep) || 1);
-	return [{ step : baseStep, meshes : baseMeshes }];
-}
-
-function chooseGridLodStep(levels, minStep) {
-	if (!Array.isArray(levels) || levels.length === 0) return 1;
-	const safeMinStep = Math.max(1, Math.ceil(Number(minStep) || 1));
-	let chosen = Math.max(1, Number(levels[levels.length - 1]?.step) || 1);
-	for (const level of levels) {
-		const step = Math.max(1, Number(level?.step) || 1);
-		if (step >= safeMinStep) {
-			chosen = step;
-			break;
-		}
-	}
-	return chosen;
-}
-
-function applyGridLodState(root, visible, minStep = 1) {
-	if (!root?.userData) return;
-	const levels = getGridLodLevels(root);
-	if (levels.length === 0) return;
-
-	const nextStep = visible ? chooseGridLodStep(levels, minStep) : null;
-	const stateKey = visible ? `1:${nextStep}` : "0";
-	if (root.userData.gridLineLodStateKey === stateKey) return;
-
-	root.userData.gridLineLodStateKey = stateKey;
-	root.userData.gridLinesVisible = !!visible;
-	if (visible && Number.isFinite(nextStep)) root.userData.gridLineCurrentStep = nextStep;
-
-	for (const level of levels) {
-		const step = Math.max(1, Number(level?.step) || 1);
-		const levelVisible = !!visible && step === nextStep;
-		const meshes = Array.isArray(level?.meshes) ? level.meshes : [];
-		for (const mesh of meshes) {
-			if (mesh && mesh.visible !== levelVisible) mesh.visible = levelVisible;
-		}
-	}
-}
-
-function estimateGridLineCountFromLevel(level) {
-	const meshes = Array.isArray(level?.meshes) ? level.meshes : null;
-	const mesh = meshes && meshes.length > 0 ? meshes[0] : null;
-	const posCount = Number(mesh?.geometry?.attributes?.position?.count);
-	if (!Number.isFinite(posCount) || posCount <= 0) return Number.POSITIVE_INFINITY;
-	return Math.max(0, Math.floor(posCount / 2));
-}
-
-function findGridLodLevel(levels, step) {
-	if (!Array.isArray(levels) || levels.length === 0) return null;
-	const s = Math.max(1, Number(step) || 1);
-	for (const level of levels) {
-		const lvStep = Math.max(1, Number(level?.step) || 1);
-		if (lvStep === s) return level;
-	}
-	return null;
-}
-
-function updateAdaptiveGridVisibility(scene, activeCam) {
-	const root = scene?.userData?.designRoot;
-	if (!root?.userData) return;
-	const levels = getGridLodLevels(root);
-	if (levels.length === 0) return;
-
-	const gridPitch = Number(root.userData.gridPitch);
-	if (!Number.isFinite(gridPitch) || gridPitch <= 0) {
-		applyGridLodState(root, true, 1);
-		return;
-	}
-
-	const maxStep = Math.max(1, Number(levels[levels.length - 1]?.step) || 1);
-	const screenH = Math.max(1, renderer.domElement.clientHeight || window.innerHeight || 1);
-
-	if (activeCam?.isPerspectiveCamera) {
-		// Main camera compromise: never draw grid to avoid heavy horizon overdraw.
-		applyGridLodState(root, false);
-		return;
-	}
-
-	if (activeCam?.isOrthographicCamera) {
-		const worldPerPixel = (activeCam.top - activeCam.bottom) / (screenH * activeCam.zoom);
-		if (!Number.isFinite(worldPerPixel) || worldPerPixel <= 0) {
-			applyGridLodState(root, false);
-			return;
-		}
-
-		const pixelSpacing = gridPitch / Math.max(1e-9, worldPerPixel);
-		const maxPixelSpacing = pixelSpacing * maxStep;
-		if (!Number.isFinite(pixelSpacing) || pixelSpacing <= 0 || maxPixelSpacing < TOPVIEW_MIN_GRID_PIXEL_SPACING) {
-			applyGridLodState(root, false);
-			return;
-		}
-
-		let minStep = TOPVIEW_TARGET_GRID_PIXEL_SPACING / Math.max(1e-9, pixelSpacing);
-		if (TOPVIEW_MAX_GRID_LINE_COUNT > 0) {
-			let guard = 0;
-			let chosenStep = chooseGridLodStep(levels, minStep);
-			while (guard < levels.length) {
-				const level = findGridLodLevel(levels, chosenStep);
-				const lineCount = estimateGridLineCountFromLevel(level);
-				if (lineCount <= TOPVIEW_MAX_GRID_LINE_COUNT) break;
-				const nextStep = chooseGridLodStep(levels, chosenStep + 1);
-				if (nextStep === chosenStep) break;
-				chosenStep = nextStep;
-				guard += 1;
-			}
-			minStep = Math.max(minStep, chosenStep);
-		}
-		applyGridLodState(root, true, minStep);
-		return;
-	}
-
-	applyGridLodState(root, true, 1);
-}
-
 let lastFrameTimeMs = performance.now();
 function animate() {
 	requestAnimationFrame(animate);
@@ -3113,7 +2754,6 @@ function animate() {
 	syncAxisOverlayForCamera(activeScene, activeCam);
 	syncAxisVisibilityForCamera(activeScene, activeCam);
 	updateAdaptiveGridVisibility(activeScene, activeCam);
-	updateTopViewRulerOverlay(activeCam);
 	updateTopGridHoverIndicator(activeCam);
 	renderer.render(activeScene, activeCam);
 }
@@ -3284,4 +2924,3 @@ if (gridOpacityInputEl) {
 		syncLayerStyleControls();
 	});
 }
-
